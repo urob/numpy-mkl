@@ -1,0 +1,165 @@
+name: Build wheels
+
+on:
+  workflow_dispatch:
+
+jobs:
+  versions:
+    runs-on: ubuntu-latest
+
+    outputs:
+      numpy: ${{ env.NUMPY_VERSION }}
+
+    steps:
+      - name: Get latest releases
+        id: get_versions
+        run: |
+          NUMPY_VERSION=$(curl -s https://api.github.com/repos/numpy/numpy/releases/latest |
+              jq -r '.tag_name')
+          echo "NUMPY_VERSION=${NUMPY_VERSION}" >>$GITHUB_ENV
+
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-2019]
+
+    name: ${{ matrix.os }}
+
+    needs: versions
+
+    runs-on: ${{ matrix.os }}
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Check out numpy source code
+        uses: actions/checkout@v4
+        with:
+          repository: numpy/numpy
+          ref: ${{ needs.versions.outputs.numpy }}
+          path: src
+          submodules: recursive
+
+      - name: Apply patches
+        working-directory: src
+        run: |
+          git apply ../patches/*.patch
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: 0.6.x
+          enable-cache: false
+
+      - name: Install python
+        run: |
+          echo "UV_PYTHON=3.12" >>$GITHUB_ENV
+          echo "UV_PYTHON_PREFERENCE=only-managed" >>$GITHUB_ENV
+
+      - name: Install MKL libraries
+        working-directory: src
+        run: |
+          export VIRTUAL_ENV="${{ github.workspace }}/mkl"
+          uv venv "${VIRTUAL_ENV}"
+          uv pip install mkl-devel
+
+          # Get pkg-config path.
+          if [[ -f ${VIRTUAL_ENV}/bin/activate ]]; then
+              source ${VIRTUAL_ENV}/bin/activate
+          else
+              source ${VIRTUAL_ENV}/Scripts/activate
+          fi
+          echo 'from importlib.metadata import files' >get_pkg_config.py
+          echo 'path = [p for p in files("mkl-devel") if "mkl-dynamic-ilp64-iomp.pc" in str(p)]' \
+              >>get_pkg_config.py
+          echo 'print(path[0].locate().parent.resolve())' >>get_pkg_config.py
+          echo "PKG_CONFIG_PATH=$(python get_pkg_config.py)" >>$GITHUB_ENV
+
+          # Pin runtime MKL to the exact version used in the build environment.
+          MKL_VERSION=$(uv pip show mkl | grep '^Version' | sed 's/Version: //')
+          deactivate && unset VIRTUAL_ENV
+          uv add --no-sync mkl==$MKL_VERSION mkl-service
+          echo "MKL_VERSION=$MKL_VERSION" >>$GITHUB_ENV
+
+      - name: Fix MKL pkg-config (Windows)
+        run: |
+          cp patches/*.pc $PKG_CONFIG_PATH/
+        if: runner.os == 'windows'
+
+      - name: Use single dynamic library (Hack)
+        run: |
+          cp $PKG_CONFIG_PATH/mkl-sdl.pc $PKG_CONFIG_PATH/mkl-dynamic-ilp64-iomp.pc
+
+      - name: Install pkg-config (Windows)
+        run: |
+          choco install -y --no-progress --stoponfirstfailure                                    \
+              --checksum 6004DF17818F5A6DBF19CB335CC92702 pkgconfiglite
+        if: runner.os == 'windows'
+
+      # TODO: add link time optimization flags once everything is working (-Db_lto)
+      - name: Build numpy
+        working-directory: src
+        run: |
+          [[ "${{ runner.os }}" == "Windows" ]] && vsenv="-Csetup-args=--vsenv"
+          uv build --wheel $vsenv                                                                \
+              -Csetup-args=-Dblas=mkl                                                            \
+              -Csetup-args=-Dlapack=mkl                                                          \
+              -Csetup-args=-Duse-ilp64=true                                                      \
+              -Csetup-args=-Dmkl-threading=iomp                                                  \
+              -Csetup-args=-Dallow-noblas=false
+
+      - name: Repair wheel (Linux)
+        working-directory: src/dist
+        run: |
+          uvx auditwheel repair *.whl -w .                                                       \
+              --plat manylinux_2_35_x86_64                                                       \
+              --exclude 'libiomp*'                                                               \
+              --exclude 'libmkl*'
+
+          find . -type f -not -name "*manylinux*" -delete
+        if: runner.os == 'linux'
+
+      # TODO: add repair for Windows using delvewheel? May not be necessary.
+
+      - name: Archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: numpy-${{ needs.versions.outputs.numpy }}-${{ runner.os }}
+          path: src/dist/*.whl
+
+
+  commit:
+    needs: [versions, build]
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: numpy-*
+          path: wheelhouse
+          merge-multiple: true
+
+      - name: Commit wheels
+        run: |
+          if [[ -z "$(git status --porcelain)" ]]; then
+              echo "No changes to commit"
+              exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add wheelhouse
+          git commit -m "ci: Add wheels for numpy-${{ needs.versions.output.numpy }}"
+          git push origin ${{ github.ref_name }}:main
+

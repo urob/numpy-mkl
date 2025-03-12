@@ -1,0 +1,19 @@
+diff --git a/numpy/_distributor_init.py b/numpy/_distributor_init.py
+index 25b0eed7..d4a8fcda 100644
+--- a/numpy/_distributor_init.py
++++ b/numpy/_distributor_init.py
+@@ -13,3 +13,14 @@
+     from . import _distributor_init_local
+ except ImportError:
+     pass
++
++try:
++    import mkl
++except ImportError:
++    import warnings
++
++    warnings.warn(
++        "Failed to import mkl-service. Please install it or set LD_LIBRARY_PATH to"
++        "include the location of the MKL library directory",
++        stacklevel=2,
++    )

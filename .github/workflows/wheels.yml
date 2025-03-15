@@ -120,13 +120,17 @@ jobs:
         run: |
           uvx auditwheel repair *.whl -w .                                                       \
               --plat manylinux_2_35_x86_64                                                       \
-              --exclude 'libiomp*'                                                               \
               --exclude 'libmkl*'
 
           find . -type f -not -name "*manylinux*" -delete
         if: runner.os == 'linux'
 
-      # TODO: add repair for Windows using delvewheel? May not be necessary.
+      - name: Repair wheel (Windows)
+        working-directory: src/dist
+        run: |
+          uvx delvewheel repair *.whl -w .                                                       \
+              --exclude 'mkl_rt.2.dll'
+        if: runner.os == 'linux'
 
       - name: Archive
         uses: actions/upload-artifact@v4

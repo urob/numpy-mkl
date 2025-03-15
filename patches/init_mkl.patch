@@ -1,14 +1,26 @@
 diff --git a/numpy/_distributor_init.py b/numpy/_distributor_init.py
-index 25b0eed7..d4a8fcda 100644
+index 25b0eed7..260a2910 100644
 --- a/numpy/_distributor_init.py
 +++ b/numpy/_distributor_init.py
-@@ -13,3 +13,14 @@
+@@ -13,3 +13,26 @@
      from . import _distributor_init_local
  except ImportError:
      pass
 +
 +try:
++    import contextlib
++    import os
++    import sys
++    from pathlib import Path
++
++    # Add MKL library to DLL search path on Windows so mkl-service can find it.
++    dll_dir = Path(sys.prefix) / "Library" / "bin"
++    with contextlib.suppress(AttributeError, FileNotFoundError):
++        os.add_dll_dir(dll_dir)
++
++    # Load MKL library via mkl-service so we don't have to graft it into NumPy.
 +    import mkl
++
 +except ImportError:
 +    import warnings
 +

@@ -23,8 +23,9 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, windows-2019]
+        python: [3.12]
 
-    name: ${{ matrix.os }}
+    name: cp${{ matrix.python }} (${{ matrix.os }})
 
     needs: versions
 
@@ -59,7 +60,7 @@ jobs:
 
       - name: Install python
         run: |
-          echo "UV_PYTHON=3.12" >>$GITHUB_ENV
+          echo "UV_PYTHON=${{ matrix.python }}" >>$GITHUB_ENV
           echo "UV_PYTHON_PREFERENCE=only-managed" >>$GITHUB_ENV
 
       - name: Install MKL libraries
@@ -130,9 +131,8 @@ jobs:
       - name: Archive
         uses: actions/upload-artifact@v4
         with:
-          name: numpy-${{ needs.versions.outputs.numpy }}-${{ runner.os }}
+          name: numpy-${{ needs.versions.outputs.numpy }}-cp${{ matrix.python }}-${{ runner.os }}
           path: src/dist/*.whl
-
 
   commit:
     needs: [versions, build]

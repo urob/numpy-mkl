@@ -1,0 +1,14 @@
+
+----
+
+This binary distribution of NumPy is linked against the Intel(R) Math Kernel
+Library (MKL). The library is fetched from PyPI during the installation of NumPy
+and is not bundled with this distribution.
+
+----
+
+Full text of license texts referred to above follows (that they are listed below
+does not necessarily imply the conditions apply to the present binary release):
+
+----
+

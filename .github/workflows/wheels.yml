@@ -68,7 +68,6 @@ jobs:
           submodules: recursive
 
       - name: Install MKL libraries
-        working-directory: ${{ env.NUMPY_DIR }}
         run: |
           export VIRTUAL_ENV="${{ env.MKL_DIR }}"
           uv venv "${VIRTUAL_ENV}"
@@ -84,14 +83,27 @@ jobs:
           else
               source "${VIRTUAL_ENV}/Scripts/activate"
           fi
-          echo "PKG_CONFIG_PATH=$(python ${{ github.workspace }}/tools/get_file_in_pkg.py        \
-              mkl-dynamic-ilp64-iomp.pc --pkg mkl-devel --parent)" >>$GITHUB_ENV
+          echo "PKG_CONFIG_PATH=$(python tools/get_file_in_pkg.py mkl-dynamic-ilp64-iomp.pc      \
+              --pkg mkl-devel --parent)" >>$GITHUB_ENV
+
+          # Fetch MKL license.
+          cat $(python tools/get_file_in_pkg.py LICENSE.txt --pkg mkl-devel)                     \
+              >>"${{ github.workspace }}/patches/LICENSE_MKL.txt"
 
       - name: Add MKL to runtime dependencies
         working-directory: ${{ env.NUMPY_DIR }}
         run: |
           # Pin runtime library to the exact version used for compiling.
           uv add --no-sync mkl=="${MKL_VERSION}" mkl-service
+
+      - name: Add MKL licence
+        working-directory: ${{ env.NUMPY_DIR }}
+        run: |
+          echo "" >>LICENSE.txt
+          echo "----" >>LICENSE.txt
+          echo "" >>LICENSE.txt
+          cat LICENSES_bundled.txt >>LICENSE.txt
+          cat "${{ github.workspace }}/patches/LICENSE_MKL.txt" >>LICENSE.txt
 
       - name: Apply patches
         run: |

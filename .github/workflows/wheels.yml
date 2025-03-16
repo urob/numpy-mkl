@@ -14,8 +14,8 @@ jobs:
       - name: Get latest releases
         id: get_versions
         run: |
-          NUMPY_VERSION=$(curl -s https://api.github.com/repos/numpy/numpy/releases/latest |
-              jq -r '.tag_name')
+          NUMPY_URL="https://api.github.com/repos/numpy/numpy/releases/latest"
+          NUMPY_VERSION="$(curl -s "${NUMPY_URL}" | jq -r '.tag_name')"
           echo "NUMPY_VERSION=${NUMPY_VERSION}" >>$GITHUB_ENV
 
   build:
@@ -51,7 +51,7 @@ jobs:
       - name: Set python version
         run: |
           echo "UV_PYTHON=${{ matrix.python }}" >>$GITHUB_ENV
-          echo "UV_PYTHON_PREFERENCE=only-managed" >>$GITHUB_ENV
+          echo "UV_PYTHON_PREFERENCE='only-managed'" >>$GITHUB_ENV
 
       - name: Check out repository
         uses: actions/checkout@v4
@@ -72,10 +72,10 @@ jobs:
           uv pip install mkl-devel
 
           # Get pkg-config path.
-          if [[ -f ${VIRTUAL_ENV}/bin/activate ]]; then
-              source ${VIRTUAL_ENV}/bin/activate
+          if [[ -f "${VIRTUAL_ENV}/bin/activate" ]]; then
+              source "${VIRTUAL_ENV}/bin/activate"
           else
-              source ${VIRTUAL_ENV}/Scripts/activate
+              source "${VIRTUAL_ENV}/Scripts/activate"
           fi
           echo 'from importlib.metadata import files' >get_pkg_config.py
           echo 'path = [p for p in files("mkl-devel") if "mkl-dynamic-ilp64-iomp.pc" in str(p)]' \
@@ -83,11 +83,11 @@ jobs:
           echo 'print(path[0].locate().parent.resolve())' >>get_pkg_config.py
           echo "PKG_CONFIG_PATH=$(python get_pkg_config.py)" >>$GITHUB_ENV
 
-          # Pin runtime MKL to the exact version used in the build environment.
-          MKL_VERSION=$(uv pip show mkl | grep '^Version' | sed 's/Version: //')
+          # Add MKL to runtime dependencies and pin it to the _exact_ version used for compiling.
+          MKL_VERSION="$(uv pip show mkl | grep '^Version' | sed 's/Version: //')"
           deactivate && unset VIRTUAL_ENV
-          uv add --no-sync mkl==$MKL_VERSION mkl-service
-          echo "MKL_VERSION=$MKL_VERSION" >>$GITHUB_ENV
+          uv add --no-sync mkl=="${MKL_VERSION}" mkl-service
+          echo "MKL_VERSION=${MKL_VERSION}" >>$GITHUB_ENV
 
       - name: Apply patches
         working-directory: src
@@ -96,19 +96,19 @@ jobs:
           git apply ../patches/*.patch
 
           # Use single dynamic library (Hack)
-          cp $PKG_CONFIG_PATH/mkl-sdl.pc $PKG_CONFIG_PATH/mkl-dynamic-ilp64-iomp.pc
+          cp "${PKG_CONFIG_PATH}/mkl-sdl.pc" "${PKG_CONFIG_PATH}/mkl-dynamic-ilp64-iomp.pc"
 
           # Fix MKL pkg-config on Windows
           if [[ "${{ runner.os }}" == "Windows" ]]; then
-              cp ../patches/*.pc $PKG_CONFIG_PATH/
+              cp ../patches/*.pc "${PKG_CONFIG_PATH}/"
           fi
 
       # TODO: add link time optimization flags once everything is working (-Db_lto)
       - name: Build numpy
         working-directory: src
         run: |
-          [[ "${{ runner.os }}" == "Windows" ]] && vsenv="-Csetup-args=--vsenv"
-          uv build --wheel $vsenv                                                                \
+          [[ "${{ runner.os }}" == "Windows" ]] && vsenv='-Csetup-args=--vsenv'
+          uv build --wheel "${vsenv}"                                                            \
               -Csetup-args=-Dblas=mkl                                                            \
               -Csetup-args=-Dlapack=mkl                                                          \
               -Csetup-args=-Duse-ilp64=true                                                      \

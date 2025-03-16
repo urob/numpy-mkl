@@ -36,6 +36,23 @@ jobs:
         shell: bash
 
     steps:
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: 0.6.x
+          enable-cache: false
+
+      - name: Install pkg-config (Windows)
+        run: |
+          choco install -y --no-progress --stoponfirstfailure                                    \
+              --checksum 6004DF17818F5A6DBF19CB335CC92702 pkgconfiglite
+        if: runner.os == 'windows'
+
+      - name: Set python version
+        run: |
+          echo "UV_PYTHON=${{ matrix.python }}" >>$GITHUB_ENV
+          echo "UV_PYTHON_PREFERENCE=only-managed" >>$GITHUB_ENV
+
       - name: Check out repository
         uses: actions/checkout@v4
 
@@ -46,22 +63,6 @@ jobs:
           ref: ${{ needs.versions.outputs.numpy }}
           path: src
           submodules: recursive
-
-      - name: Apply patches
-        working-directory: src
-        run: |
-          git apply ../patches/*.patch
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          version: 0.6.x
-          enable-cache: false
-
-      - name: Install python
-        run: |
-          echo "UV_PYTHON=${{ matrix.python }}" >>$GITHUB_ENV
-          echo "UV_PYTHON_PREFERENCE=only-managed" >>$GITHUB_ENV
 
       - name: Install MKL libraries
         working-directory: src
@@ -88,20 +89,19 @@ jobs:
           uv add --no-sync mkl==$MKL_VERSION mkl-service
           echo "MKL_VERSION=$MKL_VERSION" >>$GITHUB_ENV
 
-      - name: Fix MKL pkg-config (Windows)
+      - name: Apply patches
+        working-directory: src
         run: |
-          cp patches/*.pc $PKG_CONFIG_PATH/
-        if: runner.os == 'windows'
+          # Apply numpy patches
+          git apply ../patches/*.patch
 
-      - name: Use single dynamic library (Hack)
-        run: |
+          # Use single dynamic library (Hack)
           cp $PKG_CONFIG_PATH/mkl-sdl.pc $PKG_CONFIG_PATH/mkl-dynamic-ilp64-iomp.pc
 
-      - name: Install pkg-config (Windows)
-        run: |
-          choco install -y --no-progress --stoponfirstfailure                                    \
-              --checksum 6004DF17818F5A6DBF19CB335CC92702 pkgconfiglite
-        if: runner.os == 'windows'
+          # Fix MKL pkg-config on Windows
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+              cp ../patches/*.pc $PKG_CONFIG_PATH/
+          fi
 
       # TODO: add link time optimization flags once everything is working (-Db_lto)
       - name: Build numpy
@@ -167,3 +167,5 @@ jobs:
           git commit -m "ci: Add wheels for numpy-${{ needs.versions.outputs.numpy }}"
           git push origin ${{ github.ref_name }}:main
 
+...
+# vim: set tw=98:

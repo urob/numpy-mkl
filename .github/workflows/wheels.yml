@@ -51,7 +51,7 @@ jobs:
       - name: Set python version
         run: |
           echo "UV_PYTHON=${{ matrix.python }}" >>$GITHUB_ENV
-          echo "UV_PYTHON_PREFERENCE='only-managed'" >>$GITHUB_ENV
+          echo "UV_PYTHON_PREFERENCE=only-managed" >>$GITHUB_ENV
 
           echo "NUMPY_DIR=${{ github.workspace }}/src" >>$GITHUB_ENV
           echo "MKL_DIR=${{ github.workspace }}/mkl" >>$GITHUB_ENV
@@ -108,15 +108,15 @@ jobs:
       - name: Apply patches
         run: |
           # Apply numpy patches
-          cd ${{ env.NUMPY_DIR }}
-          git apply ${{ github.workspace }}/patches/*.patch
+          cd "${{ env.NUMPY_DIR }}"
+          git apply "${{ github.workspace }}"/patches/*.patch
 
           # Use single dynamic library (Hack)
           cp "${PKG_CONFIG_PATH}/mkl-sdl.pc" "${PKG_CONFIG_PATH}/mkl-dynamic-ilp64-iomp.pc"
 
           # Fix MKL pkg-config on Windows
           if [[ "${{ runner.os }}" == "Windows" ]]; then
-              cp ${{ github.workspace }}/patches/*.pc "${PKG_CONFIG_PATH}/"
+              cp "${{ github.workspace }}"/patches/*.pc "${PKG_CONFIG_PATH}/"
           fi
 
       # TODO: add link time optimization flags once everything is working (-Db_lto)
@@ -124,7 +124,7 @@ jobs:
         working-directory: ${{ env.NUMPY_DIR }}
         run: |
           [[ "${{ runner.os }}" == "Windows" ]] && vsenv='-Csetup-args=--vsenv'
-          uv build --wheel "${vsenv}"                                                            \
+          uv build --wheel ${vsenv}                                                              \
               -Csetup-args=-Dblas=mkl                                                            \
               -Csetup-args=-Dlapack=mkl                                                          \
               -Csetup-args=-Duse-ilp64=true                                                      \
@@ -132,14 +132,14 @@ jobs:
               -Csetup-args=-Dallow-noblas=false
 
       - name: Repair wheel (Linux)
-        working-directory: ${{ env.NUMPY_DIR}/dist
+        working-directory: ${{ env.NUMPY_DIR }}/dist
         run: |
           uvx auditwheel repair *.whl -w . --exclude 'libmkl*' --plat manylinux_2_35_x86_64
           find . -type f -not -name "*manylinux*" -delete
         if: runner.os == 'linux'
 
       - name: Repair wheel (Windows)
-        working-directory: ${{ env.NUMPY_DIR}/dist
+        working-directory: ${{ env.NUMPY_DIR }}/dist
         run: |
           uvx delvewheel repair *.whl -w . --exclude 'mkl_rt.2.dll'
         if: runner.os == 'windows'
@@ -179,5 +179,5 @@ jobs:
           git commit -m "ci: Add wheels for numpy-${{ needs.versions.outputs.numpy }}"
           git push origin ${{ github.ref_name }}:main
 
----
+...
 # vim: set tw=98:

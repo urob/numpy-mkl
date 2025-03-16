@@ -144,6 +144,40 @@ jobs:
           uvx delvewheel repair *.whl -w . --exclude 'mkl_rt.2.dll'
         if: runner.os == 'windows'
 
+      - name: Run tests
+        run: |
+          # Make sure we don't pick up the development MKL libraries.
+          rm -rf "${{ env.MKL_DIR }}"
+
+          # Set up test environment.
+          export VIRTUAL_ENV="testenv"
+          uv venv "${VIRTUAL_ENV}"
+          uv pip install -r requirements/test_requirements.txt
+          uv pip install threadpoolctl
+          uv pip install "${{ env.NUMPY_DIR }}"/dist/*.whl
+
+          if [[ "${{ runner.os }}" == "Linux" ]]; then
+              source "${VIRTUAL_ENV}/bin/activate"
+          else
+              source "${VIRTUAL_ENV}/Scripts/activate"
+          fi
+
+          python -c "import numpy; numpy.show_config()"
+
+          # TODO: move rest to bash script, ruen with: bash run_tests.sh
+          if [[ $RUNNER_OS == "Windows" ]]; then
+              # GH 20391
+              PY_DIR=$(python -c "import sys; print(sys.prefix)")
+              mkdir $PY_DIR/libs
+          fi
+
+          # Set available memory value to avoid OOM problems on aarch64.
+          # See gh-22418.
+          export NPY_AVAILABLE_MEM="4 GB"
+
+          # Run entire NumPY test suite.
+          python -c "import sys; import numpy; sys.exit(not numpy.test(label='full', extra_argv=['-n=auto', '--timeout=1800', '--durations=10']))"
+
       - name: Archive
         uses: actions/upload-artifact@v4
         with:

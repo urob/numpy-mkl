@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+basedir="${1:-$(pwd)}"
+
+packages=(
+    "intel-cmplr-lib-ur"
+    "intel-openmp"
+    "mkl"
+    "mkl-service"
+    "tbb"
+    "tcmlib"
+    "umf"
+)
+
+for p in "${packages[@]}"; do
+    url="https://pypi.org/simple/${p}/"
+    dir="${basedir}/${p}"
+    mkdir -p "${dir}"
+    curl "${url}" --output "${dir}/index.html"
+done

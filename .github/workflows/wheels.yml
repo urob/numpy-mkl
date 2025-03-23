@@ -179,14 +179,31 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: main
+
+      - uses: actions/checkout@v4
+        with:
+          ref: wheelhouse
+          path: wheelhouse
+
+      - name: Create directory
+        run: |
+          mkdir -p wheelhouse/numpy
 
       - uses: actions/download-artifact@v4
         with:
           pattern: numpy-*
-          path: wheelhouse
+          path: wheelhouse/numpy
           merge-multiple: true
 
+      - name: Update index
+        run: |
+          main/tools/make_index wheelhouse/numpy/ --package numpy
+          main/tools/link_pypi wheelhouse/
+
       - name: Commit wheels
+        working-directory: wheelhouse
         run: |
           if [[ -z "$(git status --porcelain)" ]]; then
               echo "No changes to commit"
@@ -194,9 +211,9 @@ jobs:
           fi
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add wheelhouse
+          git add .
           git commit -m "ci: Add wheels for numpy-${{ needs.versions.outputs.numpy }}"
-          git push origin ${{ github.ref_name }}:main
+          git push origin HEAD:wheelhouse
 
 ...
 # vim: set tw=98:

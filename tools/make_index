@@ -1,0 +1,81 @@
+#!/usr/bin/env python
+
+import argparse
+import hashlib
+import time
+from pathlib import Path
+
+PACKAGE = """<!DOCTYPE html>
+<html>
+  <head>
+    <title>Links for %PACKAGE%</title>
+  </head>
+  <body>
+    <h1>Links for %PACKAGE%</h1>
+    <pre>
+%LINKS%
+    </pre>
+  </body>
+</html>
+"""
+
+PACKAGE_URL = '<a href="{baseurl}{name}#sha256={sha256}" download="{name}">{name}</a>{pad}{timestamp} {size}'
+
+parser = argparse.ArgumentParser(description='Create a custom Python package index')
+
+parser.add_argument('wheelhouse', type=str, help='path where wheels are stored')
+parser.add_argument(
+    '-p', '--package', required=True, type=str, help='name of the package'
+)
+
+args = parser.parse_args()
+wheelhouse = Path(args.wheelhouse)
+indexfile = wheelhouse / 'index.html'
+
+
+wheels = sorted([p for p in wheelhouse.iterdir() if p.suffix in {'.whl', '.tar.gz'}])
+names = [w.name for w in wheels]
+width = len(max(names, key=len)) + 3
+
+
+class Wheel:
+    def __init__(self, path):
+        self.path = path
+        self.name = path.name
+
+        self.sha256 = self.sha256sum()
+        self.size = self.size()
+        self.timestamp = self.timestamp()
+
+    def __str__(self):
+        return PACKAGE_URL.format(
+            baseurl='',
+            name=self.name,
+            sha256=self.sha256,
+            size=self.size,
+            timestamp=self.timestamp,
+            pad=' ' * (width - len(self.name)),
+        )
+
+    def sha256sum(self):
+        with self.path.open('rb', buffering=0) as f:
+            return hashlib.file_digest(f, 'sha256').hexdigest()
+
+    def size(self):
+        bytes = self.path.stat().st_size
+        if bytes < 1024:
+            return f'{bytes:5.0} bytes'
+        if bytes < 1024**2:
+            return f'{bytes / 1024:5.1f} KB'
+        return f'{bytes / 1024**2:5.1f} MB'
+
+    def timestamp(self):
+        return time.strftime(
+            '%Y-%m-%d %H:%M:%S',
+            time.gmtime(self.path.stat().st_mtime),
+        )
+
+
+index = PACKAGE.replace('%LINKS%', '\n'.join([str(Wheel(w)) for w in wheels]))
+index = index.replace('%PACKAGE%', args.package)
+indexfile.write_text(index)

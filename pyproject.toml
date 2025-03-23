@@ -1,0 +1,40 @@
+[project]
+name = "numpy-mkl"
+version = "0.1.0"
+
+description = "NumPy wheels with MKL support"
+authors = [{name = "Robert Ulbricht"}]
+requires-python = ">=3.09"
+readme = "README.md"
+
+[tool.ruff]
+line-length = 88
+indent-width = 4
+
+[tool.ruff.lint]
+select = [
+    'F',                # pyflakes
+    'E4', 'E7', 'E9',   # pycodestyle errors, omitting rules that overlap with formatter
+    'W605',             # invalid-escape-sequence
+    'I',                # unsorted and missing imports
+    'N',                # pep8 naming conventions
+    'UP',               # alert when better syntax is available in your python version
+    'B',                # bugbear
+    'A',                # prevent using keywords that clobber python builtins
+    'C4',               # unnecessary comprehensions
+    'PIE',              # misc lints
+    'RET',              # tidy up function returns
+    'SIM',              # simplify code hints
+    'ARG',              # detect unused arguments
+    'PL',               # pylint rules
+    'PERF',             # catch performance antipatterns
+    'FURB',             # catch "unmodern" python code
+    'PTH',              # pathlib related hints
+    'RUF',              # the ruff developer's own rules
+]
+
+[tool.ruff.format]
+quote-style = 'single'
+indent-style = 'space'
+line-ending = 'lf'
+skip-magic-trailing-comma = false

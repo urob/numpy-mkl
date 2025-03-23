@@ -1,5 +1,5 @@
 diff --git a/numpy/_distributor_init.py b/numpy/_distributor_init.py
-index 25b0eed7..260a2910 100644
+index 25b0eed7..84356176 100644
 --- a/numpy/_distributor_init.py
 +++ b/numpy/_distributor_init.py
 @@ -13,3 +13,26 @@
@@ -10,22 +10,22 @@ index 25b0eed7..260a2910 100644
 +try:
 +    import contextlib
 +    import os
-+    import sys
-+    from pathlib import Path
++    from importlib import metadata
 +
 +    # Add MKL library to DLL search path on Windows so mkl-service can find it.
-+    dll_dir = Path(sys.prefix) / "Library" / "bin"
-+    with contextlib.suppress(AttributeError, FileNotFoundError):
-+        os.add_dll_dir(dll_dir)
++    with contextlib.suppress(AttributeError, FileNotFoundError, StopIteration):
++        dll = next(p for p in metadata.files("mkl") if p.match("*mkl_rt*.dll"))
++        dll_dir = dll.locate().resolve().parent
++        os.add_dll_directory(dll_dir)
 +
 +    # Load MKL library via mkl-service so we don't have to graft it into NumPy.
 +    import mkl
 +
-+except ImportError:
++except (ImportError, metadata.PackageNotFoundError):
 +    import warnings
 +
 +    warnings.warn(
-+        "Failed to import mkl-service. Please install it or set LD_LIBRARY_PATH to"
-+        "include the location of the MKL library directory",
++        "Failed to import mkl-service. Please install it or manually add the MKL "
++        "library to LD_LIBRARY_PATH",
 +        stacklevel=2,
 +    )

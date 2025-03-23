@@ -36,6 +36,9 @@ jobs:
         shell: bash
 
     steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
@@ -55,17 +58,6 @@ jobs:
 
           echo "NUMPY_DIR=${{ github.workspace }}/numpy" >>$GITHUB_ENV
           cd ../.. && echo "MKL_DIR=$(pwd)/mkl" >>$GITHUB_ENV
-
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Check out numpy source code
-        uses: actions/checkout@v4
-        with:
-          repository: numpy/numpy
-          ref: ${{ needs.versions.outputs.numpy }}
-          path: ${{ env.NUMPY_DIR }}
-          submodules: recursive
 
       - name: Install MKL libraries
         run: |
@@ -89,6 +81,14 @@ jobs:
           # Fetch MKL license.
           cat $(python tools/get_file_in_pkg.py LICENSE.txt --pkg mkl-devel)                     \
               >>"${{ github.workspace }}/patches/LICENSE_MKL.txt"
+
+      - name: Get numpy source
+        uses: actions/checkout@v4
+        with:
+          repository: numpy/numpy
+          ref: ${{ needs.versions.outputs.numpy }}
+          path: ${{ env.NUMPY_DIR }}
+          submodules: recursive
 
       - name: Add MKL to runtime dependencies
         working-directory: ${{ env.NUMPY_DIR }}

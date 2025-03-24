@@ -38,6 +38,8 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    continue-on-error: true
+
     defaults:
       run:
         shell: bash

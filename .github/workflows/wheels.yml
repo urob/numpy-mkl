@@ -171,7 +171,7 @@ jobs:
       - name: Repair wheel (Windows)
         working-directory: ${{ env.SRC_DIR }}/dist
         run: |
-          uvx delvewheel repair *.whl -w . --exclude 'mkl_rt.2.dll'
+          uvx delvewheel repair *.whl -w . --exclude mkl_rt.2.dll --exclude libsf_error_state.dll
         if: runner.os == 'windows'
 
       - name: Run tests

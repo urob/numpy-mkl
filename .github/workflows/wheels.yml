@@ -27,7 +27,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, windows-2019]
+        os: [windows-2019]
+        # os: [ubuntu-22.04, windows-2019]
         python: [3.12]
         # package: [numpy, scipy]
         package: [scipy]
@@ -162,16 +163,17 @@ jobs:
               -Csetup-args=-Dlapack=mkl
 
       - name: Repair wheel (Linux)
-        working-directory: ${{ env.SRC_DIR }}/dist
         run: |
-          uvx auditwheel repair *.whl -w . --exclude 'libmkl*' --plat manylinux_2_35_x86_64
-          find . -type f -not -name "*manylinux*" -delete
+          mkdir -p wheelhouse
+          uvx auditwheel repair "${{ env.SRC_DIR }}"/dist/*.whl -w wheelhouse                    \
+              --exclude 'libmkl*' --plat manylinux_2_35_x86_64
         if: runner.os == 'linux'
 
       - name: Repair wheel (Windows)
-        working-directory: ${{ env.SRC_DIR }}/dist
         run: |
-          uvx delvewheel repair *.whl -w . --exclude mkl_rt.2.dll --exclude libsf_error_state.dll
+          mkdir -p wheelhouse
+          uvx delvewheel repair "${{ env.SRC_DIR }}"/dist/*.whl -w wheelhouse                    \
+              --exclude mkl_rt.2.dll --exclude libsf_error_state.dll
         if: runner.os == 'windows'
 
       - name: Run tests
@@ -189,7 +191,7 @@ jobs:
               uv pip install -r "${{ env.SRC_DIR }}/requirements/test.txt"                       \
                   --index https://urob.github.io/numpy-mkl
           fi
-          uv pip install "${{ env.SRC_DIR }}"/dist/*.whl
+          uv pip install wheelhouse/*.whl
 
           if [[ "${{ runner.os }}" == "Linux" ]]; then
               source "${VIRTUAL_ENV}/bin/activate"
@@ -206,7 +208,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.package }}-cp${{ matrix.python }}-${{ runner.os }}
-          path: ${{ env.SRC_DIR }}/dist/*.whl
+          path: wheelhouse/*.whl
 
   commit:
     needs: [versions, build]

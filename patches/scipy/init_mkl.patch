@@ -1,0 +1,31 @@
+diff --git a/scipy/_distributor_init.py b/scipy/_distributor_init.py
+index 5df13497..657f800e 100644
+--- a/scipy/_distributor_init.py
++++ b/scipy/_distributor_init.py
+@@ -16,3 +16,26 @@ try:
+     from . import _distributor_init_local  # noqa: F401
+ except ImportError:
+     pass
++
++try:
++    import contextlib
++    import os
++    from importlib import metadata
++
++    # Add MKL library to DLL search path on Windows so mkl-service can find it.
++    with contextlib.suppress(AttributeError, FileNotFoundError, StopIteration):
++        dll = next(p for p in metadata.files("mkl") if p.match("*mkl_rt*.dll"))
++        dll_dir = dll.locate().resolve().parent
++        os.add_dll_directory(dll_dir)
++
++    # Load MKL library via mkl-service so we don't have to graft it into SciPy.
++    import mkl
++
++except (ImportError, metadata.PackageNotFoundError):
++    import warnings
++
++    warnings.warn(
++        "Failed to import mkl-service. Please install it or manually add the MKL "
++        "library to LD_LIBRARY_PATH",
++        stacklevel=2,
++    )

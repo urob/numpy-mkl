@@ -9,6 +9,7 @@ jobs:
 
     outputs:
       numpy: ${{ env.NUMPY_VERSION }}
+      scipy: ${{ env.SCIPY_VERSION }}
 
     steps:
       - name: Get latest releases
@@ -18,14 +19,20 @@ jobs:
           NUMPY_VERSION="$(curl -s "${NUMPY_URL}" | jq -r '.tag_name')"
           echo "NUMPY_VERSION=${NUMPY_VERSION}" >>$GITHUB_ENV
 
+          SCIPY_URL="https://api.github.com/repos/scipy/scipy/releases/latest"
+          SCIPY_VERSION="$(curl -s "${SCIPY_URL}" | jq -r '.tag_name')"
+          echo "SCIPY_VERSION=${SCIPY_VERSION}" >>$GITHUB_ENV
+
   build:
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, windows-2019]
         python: [3.12]
+        # package: [numpy, scipy]
+        package: [scipy]
 
-    name: cp${{ matrix.python }} (${{ matrix.os }})
+    name: ${{ matrix.package }}-cp${{ matrix.python }} (${{ matrix.os }})
 
     needs: versions
 
@@ -49,6 +56,11 @@ jobs:
         run: |
           choco install -y --no-progress --stoponfirstfailure                                    \
               --checksum 6004DF17818F5A6DBF19CB335CC92702 pkgconfiglite
+          # TODO: do we need them?
+          if [[ "${{ matrix.package }}" == "scipy" ]]; then
+              choco install rtools -y --no-progress --force --version=4.0.0.20220206
+              echo "c:\rtools40\ucrt64\bin;" >> $GITHUB_PATH
+          fi
         if: runner.os == 'windows'
 
       - name: Set python version
@@ -56,8 +68,14 @@ jobs:
           echo "UV_PYTHON=${{ matrix.python }}" >>$GITHUB_ENV
           echo "UV_PYTHON_PREFERENCE=only-managed" >>$GITHUB_ENV
 
-          echo "NUMPY_DIR=${{ github.workspace }}/numpy" >>$GITHUB_ENV
+          echo "SRC_DIR=${{ github.workspace }}/src" >>$GITHUB_ENV
           cd ../.. && echo "MKL_DIR=$(pwd)/mkl" >>$GITHUB_ENV
+
+          if [[ "${{ matrix.package }}" == "numpy" ]]; then
+              echo "VERSION=${{ needs.versions.outputs.numpy }}" >>$GITHUB_ENV
+          elif [[ "${{ matrix.package }}" == "scipy" ]]; then
+              echo "VERSION=${{ needs.versions.outputs.scipy }}" >>$GITHUB_ENV
+          fi
 
       - name: Install MKL libraries
         run: |
@@ -75,29 +93,29 @@ jobs:
           else
               source "${VIRTUAL_ENV}/Scripts/activate"
           fi
-          echo "PKG_CONFIG_PATH=$(python tools/get_file_in_pkg.py mkl-dynamic-ilp64-iomp.pc      \
+          echo "PKG_CONFIG_PATH=$(python tools/get_file_in_pkg.py mkl-sdl.pc                     \
               --pkg mkl-devel --parent)" >>$GITHUB_ENV
 
           # Fetch MKL license.
           cat $(python tools/get_file_in_pkg.py LICENSE.txt --pkg mkl-devel)                     \
               >>"${{ github.workspace }}/patches/LICENSE_MKL.txt"
 
-      - name: Get numpy source
+      - name: Check out source
         uses: actions/checkout@v4
         with:
-          repository: numpy/numpy
-          ref: ${{ needs.versions.outputs.numpy }}
-          path: ${{ env.NUMPY_DIR }}
+          repository: ${{ matrix.package}}/${{ matrix.package }}
+          ref: ${{ env.VERSION }}
+          path: ${{ env.SRC_DIR }}
           submodules: recursive
 
       - name: Add MKL to runtime dependencies
-        working-directory: ${{ env.NUMPY_DIR }}
+        working-directory: ${{ env.SRC_DIR }}
         run: |
           # Pin runtime library to the exact version used for compiling.
           uv add --no-sync mkl=="${MKL_VERSION}" mkl-service
 
       - name: Add MKL licence
-        working-directory: ${{ env.NUMPY_DIR }}
+        working-directory: ${{ env.SRC_DIR }}
         run: |
           echo "" >>LICENSE.txt
           echo "----" >>LICENSE.txt
@@ -107,39 +125,49 @@ jobs:
 
       - name: Apply patches
         run: |
-          # Apply numpy patches
-          cd "${{ env.NUMPY_DIR }}"
-          git apply "${{ github.workspace }}"/patches/*.patch
+          # Apply patches
+          cd "${{ env.SRC_DIR }}"
+          git apply "${{ github.workspace }}"/patches/${{ matrix.package }}/*.patch
 
-          # Use single dynamic library (Hack)
+          # Use single dynamic library (HACK)
           cp "${PKG_CONFIG_PATH}/mkl-sdl.pc" "${PKG_CONFIG_PATH}/mkl-dynamic-ilp64-iomp.pc"
+          cp "${PKG_CONFIG_PATH}/mkl-sdl.pc" "${PKG_CONFIG_PATH}/mkl.pc"
 
           # Fix MKL pkg-config on Windows
           if [[ "${{ runner.os }}" == "Windows" ]]; then
-              cp "${{ github.workspace }}"/patches/*.pc "${PKG_CONFIG_PATH}/"
+              cp "${{ github.workspace }}"/patches/mkl/*.pc "${PKG_CONFIG_PATH}/"
           fi
 
       # TODO: add link time optimization flags once everything is working (-Db_lto)
-      - name: Build numpy
-        working-directory: ${{ env.NUMPY_DIR }}
+      - name: Build wheel
+        working-directory: ${{ env.SRC_DIR }}
         run: |
-          [[ "${{ runner.os }}" == "Windows" ]] && vsenv='-Csetup-args=--vsenv'
-          uv build --wheel ${vsenv}                                                              \
+          if [[ "${{ matrix.package }}" == "numpy" ]]; then
+              [[ "${{ runner.os }}" == "Windows" ]] && vsenv="-Csetup-args=--vsenv"
+              numpy_flags="-Csetup-args=-Duse-ilp64=true                                         \
+                           -Csetup-args=-Dmkl-threading=iomp                                     \
+                           -Csetup-args=-Dallow-noblas=false"
+          elif [[ "${{ matrix.package }}" == "scipy" ]]; then
+              # MSVC is unable to compile Pythran, so we disable it. Alternatively, compile using
+              # clang-cl
+              # [[ "${{ runner.os }}" == "Windows" ]] && vsenv="-Csetup-args=--vsenv -Csetup-args=-Duse-pythran=false"
+              scipy_flags="--index https://urob.github.io/numpy-mkl                              \
+                           -Csetup-args=-Duse-g77-abi=true"
+          fi
+
+          uv build --wheel ${scipy_flags} ${numpy_flags} ${vsenv}                                \
               -Csetup-args=-Dblas=mkl                                                            \
-              -Csetup-args=-Dlapack=mkl                                                          \
-              -Csetup-args=-Duse-ilp64=true                                                      \
-              -Csetup-args=-Dmkl-threading=iomp                                                  \
-              -Csetup-args=-Dallow-noblas=false
+              -Csetup-args=-Dlapack=mkl
 
       - name: Repair wheel (Linux)
-        working-directory: ${{ env.NUMPY_DIR }}/dist
+        working-directory: ${{ env.SRC_DIR }}/dist
         run: |
           uvx auditwheel repair *.whl -w . --exclude 'libmkl*' --plat manylinux_2_35_x86_64
           find . -type f -not -name "*manylinux*" -delete
         if: runner.os == 'linux'
 
       - name: Repair wheel (Windows)
-        working-directory: ${{ env.NUMPY_DIR }}/dist
+        working-directory: ${{ env.SRC_DIR }}/dist
         run: |
           uvx delvewheel repair *.whl -w . --exclude 'mkl_rt.2.dll'
         if: runner.os == 'windows'
@@ -152,22 +180,31 @@ jobs:
           # Set up test environment.
           export VIRTUAL_ENV="testenv"
           uv venv "${VIRTUAL_ENV}"
-          uv pip install -r "${{ env.NUMPY_DIR }}/requirements/test_requirements.txt"
-          uv pip install threadpoolctl
-          uv pip install "${{ env.NUMPY_DIR }}"/dist/*.whl
+          if [[ "${{ matrix.package }}" == "numpy" ]]; then
+              uv pip install -r "${{ env.SRC_DIR }}/requirements/test_requirements.txt"
+              uv pip install threadpoolctl
+          elif [[ "${{ matrix.package }}" == "scipy" ]]; then
+              uv pip install -r "${{ env.SRC_DIR }}/requirements/test.txt"                       \
+                  --index https://urob.github.io/numpy-mkl
+          fi
+          uv pip install "${{ env.SRC_DIR }}"/dist/*.whl
 
           if [[ "${{ runner.os }}" == "Linux" ]]; then
               source "${VIRTUAL_ENV}/bin/activate"
           else
               source "${VIRTUAL_ENV}/Scripts/activate"
           fi
-          python "tools/tests.py"
+          if [[ "${{ matrix.package }}" == "numpy" ]]; then
+              python "tools/numpy_tests.py"
+          elif [[ "${{ matrix.package }}" == "scipy" ]]; then
+              python -c 'import sys; import scipy; sys.exit(not scipy.test())'
+          fi
 
       - name: Archive
         uses: actions/upload-artifact@v4
         with:
-          name: numpy-${{ needs.versions.outputs.numpy }}-cp${{ matrix.python }}-${{ runner.os }}
-          path: ${{ env.NUMPY_DIR }}/dist/*.whl
+          name: ${{ matrix.package }}-cp${{ matrix.python }}-${{ runner.os }}
+          path: ${{ env.SRC_DIR }}/dist/*.whl
 
   commit:
     needs: [versions, build]
@@ -190,6 +227,7 @@ jobs:
       - name: Create directory
         run: |
           mkdir -p wheelhouse/numpy
+          mkdir -p wheelhouse/scipy
 
       - uses: actions/download-artifact@v4
         with:
@@ -197,9 +235,16 @@ jobs:
           path: wheelhouse/numpy
           merge-multiple: true
 
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: scipy-*
+          path: wheelhouse/scipy
+          merge-multiple: true
+
       - name: Update index
         run: |
           main/tools/make_index wheelhouse/numpy/ --package numpy
+          main/tools/make_index wheelhouse/scipy/ --package scipy
           main/tools/link_pypi wheelhouse/
 
       - name: Commit wheels
@@ -212,7 +257,8 @@ jobs:
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add .
-          git commit -m "ci: Add wheels for numpy-${{ needs.versions.outputs.numpy }}"
+          # TODO: Fix commit message
+          git commit -m "ci: Add wheels for scipy-${{ needs.versions.outputs.scipy }}"
           git push origin HEAD:wheelhouse
 
 ...

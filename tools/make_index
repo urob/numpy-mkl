@@ -19,7 +19,7 @@ PACKAGE = """<!DOCTYPE html>
 </html>
 """
 
-PACKAGE_URL = '<a href="{baseurl}{name}#sha256={sha256}" download="{name}">{name}</a>{pad}{timestamp} {size}'
+PACKAGE_URL = '<a href="{baseurl}{name}#sha256={sha256}" download="{name}">{name}</a>{pad}{size}   {timestamp}'
 
 parser = argparse.ArgumentParser(description='Create a custom Python package index')
 
@@ -62,16 +62,12 @@ class Wheel:
             return hashlib.file_digest(f, 'sha256').hexdigest()
 
     def size(self):
-        bytes = self.path.stat().st_size
-        if bytes < 1024:
-            return f'{bytes:5.0} bytes'
-        if bytes < 1024**2:
-            return f'{bytes / 1024:5.1f} KB'
-        return f'{bytes / 1024**2:5.1f} MB'
+        mb = self.path.stat().st_size / 1024**2
+        return f'{mb:4,.1f} MB'
 
     def timestamp(self):
         return time.strftime(
-            '%Y-%m-%d %H:%M:%S',
+            '%d-%b-%Y',
             time.gmtime(self.path.stat().st_mtime),
         )
 

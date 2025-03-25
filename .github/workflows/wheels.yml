@@ -46,6 +46,19 @@ jobs:
         shell: bash
 
     steps:
+      - name: Set environment variables
+        run: |
+          echo "UV_PYTHON=${{ matrix.python }}" >>$GITHUB_ENV
+          echo "UV_PYTHON_PREFERENCE=only-managed" >>$GITHUB_ENV
+
+          echo "SRC_DIR=${{ github.workspace }}/src" >>$GITHUB_ENV
+          cd ../.. && echo "MKL_DIR=$(pwd)/mkl" >>$GITHUB_ENV
+
+          case "${{ matrix.package }}" in
+            numpy) echo "SRC_VERSION=${{ needs.versions.outputs.numpy }}" >>$GITHUB_ENV ;;
+            scipy) echo "SRC_VERSION=${{ needs.versions.outputs.scipy }}" >>$GITHUB_ENV ;;
+          esac
+
       - name: Check out repository
         uses: actions/checkout@v4
 
@@ -57,28 +70,15 @@ jobs:
 
       - name: Install pkg-config (Windows)
         run: |
-          choco install -y --no-progress --stoponfirstfailure                                    \
+          choco install -y --no-progress --stoponfirstfailure \
               --checksum 6004DF17818F5A6DBF19CB335CC92702 pkgconfiglite
-          # TODO: do we need them?
-          if [[ "${{ matrix.package }}" == "scipy" ]]; then
-              choco install rtools -y --no-progress --force --version=4.0.0.20220206
-              echo "c:\rtools40\ucrt64\bin;" >> $GITHUB_PATH
-          fi
         if: runner.os == 'windows'
 
-      - name: Set python version
+      - name: Install gcc (Windows)
         run: |
-          echo "UV_PYTHON=${{ matrix.python }}" >>$GITHUB_ENV
-          echo "UV_PYTHON_PREFERENCE=only-managed" >>$GITHUB_ENV
-
-          echo "SRC_DIR=${{ github.workspace }}/src" >>$GITHUB_ENV
-          cd ../.. && echo "MKL_DIR=$(pwd)/mkl" >>$GITHUB_ENV
-
-          if [[ "${{ matrix.package }}" == "numpy" ]]; then
-              echo "VERSION=${{ needs.versions.outputs.numpy }}" >>$GITHUB_ENV
-          elif [[ "${{ matrix.package }}" == "scipy" ]]; then
-              echo "VERSION=${{ needs.versions.outputs.scipy }}" >>$GITHUB_ENV
-          fi
+          choco install rtools -y --no-progress --force --version=4.0.0.20220206
+          echo "c:\rtools40\ucrt64\bin;" >>$GITHUB_PATH
+        if: runner.os == 'windows' && matrix.package == 'scipy'
 
       - name: Install MKL libraries
         run: |
@@ -87,27 +87,26 @@ jobs:
           uv pip install mkl-devel
 
           # Get MKL version.
-          echo "MKL_VERSION=$(uv pip show mkl | grep '^Version' | sed 's/Version: //')"          \
+          echo "MKL_VERSION=$(uv pip show mkl | grep '^Version' | sed 's/Version: //')" \
               >>$GITHUB_ENV
 
           # Get pkg-config path.
-          if [[ "${{ runner.os }}" == "Linux" ]]; then
-              source "${VIRTUAL_ENV}/bin/activate"
-          else
-              source "${VIRTUAL_ENV}/Scripts/activate"
-          fi
-          echo "PKG_CONFIG_PATH=$(python tools/get_file_in_pkg.py mkl-sdl.pc                     \
+          case "${{ runner.os }}" in
+            Linux) source "${VIRTUAL_ENV}"/bin/activate ;;
+            Windows) source "${VIRTUAL_ENV}"/Scripts/activate ;;
+          esac
+          echo "PKG_CONFIG_PATH=$(python tools/get_file_in_pkg.py mkl-sdl.pc \
               --pkg mkl-devel --parent)" >>$GITHUB_ENV
 
           # Fetch MKL license.
-          cat $(python tools/get_file_in_pkg.py LICENSE.txt --pkg mkl-devel)                     \
+          cat $(python tools/get_file_in_pkg.py LICENSE.txt --pkg mkl-devel) \
               >>"${{ github.workspace }}/patches/LICENSE_MKL.txt"
 
       - name: Check out source
         uses: actions/checkout@v4
         with:
           repository: ${{ matrix.package}}/${{ matrix.package }}
-          ref: ${{ env.VERSION }}
+          ref: ${{ env.SRC_VERSION }}
           path: ${{ env.SRC_DIR }}
           submodules: recursive
 
@@ -132,47 +131,44 @@ jobs:
           cd "${{ env.SRC_DIR }}"
           git apply "${{ github.workspace }}"/patches/${{ matrix.package }}/*.patch
 
-          # Use single dynamic library (HACK)
-          cp "${PKG_CONFIG_PATH}/mkl-sdl.pc" "${PKG_CONFIG_PATH}/mkl-dynamic-ilp64-iomp.pc"
-          cp "${PKG_CONFIG_PATH}/mkl-sdl.pc" "${PKG_CONFIG_PATH}/mkl.pc"
-
           # Fix MKL pkg-config on Windows
           if [[ "${{ runner.os }}" == "Windows" ]]; then
-              cp "${{ github.workspace }}"/patches/mkl/*.pc "${PKG_CONFIG_PATH}/"
+            cp "${{ github.workspace }}"/patches/mkl/*.pc "${PKG_CONFIG_PATH}/"
           fi
 
       # TODO: add link time optimization flags once everything is working (-Db_lto)
       - name: Build wheel
         working-directory: ${{ env.SRC_DIR }}
         run: |
-          if [[ "${{ matrix.package }}" == "numpy" ]]; then
-              [[ "${{ runner.os }}" == "Windows" ]] && vsenv="-Csetup-args=--vsenv"
-              numpy_flags="-Csetup-args=-Duse-ilp64=true                                         \
-                           -Csetup-args=-Dmkl-threading=iomp                                     \
-                           -Csetup-args=-Dallow-noblas=false"
-          elif [[ "${{ matrix.package }}" == "scipy" ]]; then
-              # MSVC is unable to compile Pythran, so we disable it. Alternatively, compile using
-              # clang-cl
-              # [[ "${{ runner.os }}" == "Windows" ]] && vsenv="-Csetup-args=--vsenv -Csetup-args=-Duse-pythran=false"
-              scipy_flags="--index https://urob.github.io/numpy-mkl                              \
-                           -Csetup-args=-Duse-g77-abi=true"
-          fi
-
-          uv build --wheel ${scipy_flags} ${numpy_flags} ${vsenv}                                \
-              -Csetup-args=-Dblas=mkl                                                            \
-              -Csetup-args=-Dlapack=mkl
+          case "${{ matrix.package }}" in
+            numpy)
+              flags="-Csetup-args=-Dblas=mkl-sdl \
+                     -Csetup-args=-Dlapack=mkl-sdl \
+                     -Csetup-args=-Duse-ilp64=true \
+                     -Csetup-args=-Dmkl-threading=iomp \
+                     -Csetup-args=-Dallow-noblas=false"
+              [[ "${{ runner.os }}" == "Windows" ]] && flags="${flags} -Csetup-args=--vsenv"
+              ;;
+            scipy)
+              # MSVC is unable to compile Pythran, use gcc or set -Duse-pythran=false.
+              flags="-Csetup-args=-Dblas=mkl-sdl \
+                     -Csetup-args=-Dlapack=mkl-sdl \
+                     -Csetup-args=-Duse-g77-abi=true"
+              ;;
+          esac
+          uv build --wheel --index https://urob.github.io/numpy-mkl ${flags}
 
       - name: Repair wheel (Linux)
         run: |
           mkdir -p wheelhouse
-          uvx auditwheel repair "${{ env.SRC_DIR }}"/dist/*.whl -w wheelhouse                    \
+          uvx auditwheel repair "${{ env.SRC_DIR }}"/dist/*.whl -w wheelhouse \
               --exclude 'libmkl*' --plat manylinux_2_35_x86_64
         if: runner.os == 'linux'
 
       - name: Repair wheel (Windows)
         run: |
           mkdir -p wheelhouse
-          uvx delvewheel repair "${{ env.SRC_DIR }}"/dist/*.whl -w wheelhouse                    \
+          uvx delvewheel repair "${{ env.SRC_DIR }}"/dist/*.whl -w wheelhouse \
               --exclude mkl_rt.2.dll --exclude libsf_error_state.dll
         if: runner.os == 'windows'
 
@@ -184,25 +180,26 @@ jobs:
           # Set up test environment.
           export VIRTUAL_ENV="testenv"
           uv venv "${VIRTUAL_ENV}"
-          if [[ "${{ matrix.package }}" == "numpy" ]]; then
-              uv pip install -r "${{ env.SRC_DIR }}/requirements/test_requirements.txt"
+          case "${{ matrix.package }}" in
+            numpy)
+              uv pip install -r "${{ env.SRC_DIR }}"/requirements/test_requirements.txt
               uv pip install threadpoolctl
-          elif [[ "${{ matrix.package }}" == "scipy" ]]; then
-              uv pip install -r "${{ env.SRC_DIR }}/requirements/test.txt"                       \
+              ;;
+            scipy)
+              uv pip install -r "${{ env.SRC_DIR }}"/requirements/test.txt \
                   --index https://urob.github.io/numpy-mkl
-          fi
+              ;;
+          esac
           uv pip install wheelhouse/*.whl
 
-          if [[ "${{ runner.os }}" == "Linux" ]]; then
-              source "${VIRTUAL_ENV}/bin/activate"
-          else
-              source "${VIRTUAL_ENV}/Scripts/activate"
-          fi
-          if [[ "${{ matrix.package }}" == "numpy" ]]; then
-              python "tools/numpy_tests.py"
-          elif [[ "${{ matrix.package }}" == "scipy" ]]; then
-              python -c 'import sys; import scipy; sys.exit(not scipy.test())'
-          fi
+          case "${{ runner.os }}" in
+            Linux) source "${VIRTUAL_ENV}"/bin/activate ;;
+            Windows) source "${VIRTUAL_ENV}"/Scripts/activate ;;
+          esac
+          case "${{ matrix.package }}" in
+            numpy) python tools/numpy_tests.py ;;
+            scipy) python -c 'import sys; import scipy; sys.exit(not scipy.test())' ;;
+          esac
 
       - name: Archive
         uses: actions/upload-artifact@v4

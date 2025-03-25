@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+export UV_PYTHON=cp312
+
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+VENV_DIR="${HOME}"/testenv
+
+# numpy-mkl
+uv venv "${VENV_DIR}"
+source "${VENV_DIR}"/bin/activate \
+  && uv pip install numpy scipy --index https://urob.github.io/numpy-mkl \
+  && python "${SCRIPT_DIR}"/benchmarks.py \
+  && deactivate
+rm -rf ${VENV_DIR}
+
+# numpy-openblas
+uv venv "${VENV_DIR}"
+source "${VENV_DIR}"/bin/activate \
+  && uv pip install numpy scipy \
+  && python "${SCRIPT_DIR}"/benchmarks.py \
+  && deactivate
+rm -rf ${VENV_DIR}
+
+# intel-python
+uv venv "${VENV_DIR}"
+source "${VENV_DIR}"/bin/activate \
+  && uv pip install numpy scipy --index https://software.repos.intel.com/python/pypi \
+  && python "${SCRIPT_DIR}"/benchmarks.py \
+  && deactivate
+rm -rf ${VENV_DIR}
+
+# conda-forge
+mkdir "$VENV_DIR" && pushd "$VENV_DIR"
+pixi init -c conda-forge
+pixi add numpy scipy "libblas=*=*mkl" "liblapack=*=*mkl"
+pixi run python "${SCRIPT_DIR}"/benchmarks.py
+popd
+rm -rf ${VENV_DIR}
+
+# anaconda
+mkdir "$VENV_DIR" && pushd "$VENV_DIR"
+pixi init -c anaconda
+pixi add numpy scipy
+pixi run python "${SCRIPT_DIR}"/benchmarks.py
+popd
+rm -rf ${VENV_DIR}

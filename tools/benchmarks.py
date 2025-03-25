@@ -21,7 +21,7 @@ fmt = '{name:<10}: {time:.4f}s ({loops:4d} loops)'
 class Benchmark:
     def run(self, results=None, verbose=True, **kwargs):
         lbls = 'sml', 'med', 'lrg'
-        for size, loops, lbl in zip(self.size, self.loops, lbls):
+        for size, loops, lbl in zip(self.size, self.loops, lbls, strict=True):
             best = self.run_single(size, loops, **kwargs)
             name = self.__class__.__name__ + f'({lbl})'
             if results is not None:
@@ -201,7 +201,7 @@ if __name__ == '__main__':
         for b in get_benchmarks():
             b().run(results=results)
 
-        print('\nTotal runtime: {:.4f}s'.format(sum(results.values())))
+        print(f'\nTotal runtime: {sum(results.values()):.4f}s')
 
         if out_file:
             with out_file.open('w') as f:

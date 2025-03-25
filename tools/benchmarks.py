@@ -1,5 +1,7 @@
 import timeit
 
+from scipy import linalg
+
 import numpy as np
 
 fmt = '{name:<30} {time:.4f}s ({number:6d} loops)'
@@ -41,8 +43,20 @@ class LinalgSolveBenchmark(Benchmark):
         np.linalg.solve(self.x, self.y)
 
 
+class SciPyLinalgInvBenchmark(Benchmark):
+    params = (10, 100, 1000)
+    numbers = (10_000, 500, 5)
+
+    def setup(self, k):
+        self.x = np.random.rand(k, k)
+
+    def time_it(self):
+        linalg.inv(self.x)
+
+
 if __name__ == '__main__':
     np.random.seed(42)
 
     DotProductBenchmark().run()
     LinalgSolveBenchmark().run()
+    SciPyLinalgInvBenchmark().run()

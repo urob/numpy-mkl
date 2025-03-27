@@ -1,41 +1,55 @@
-name: Build wheels
+name: Wheels
 
 on:
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      package:
+        required: true
+        type: string
+        description: 'Package to build (numpy, scipy)'
+      force-build:
+        required: false
+        type: boolean
+        description: 'Force build even if wheels exist'
 
 jobs:
-  versions:
+  version:
     runs-on: ubuntu-latest
 
     outputs:
-      numpy: ${{ env.NUMPY_VERSION }}
-      scipy: ${{ env.SCIPY_VERSION }}
+      package: ${{ env.VERSION }}
+      python: ${{ env.PY_VERSIONS }}
 
     steps:
-      - name: Get latest releases
-        id: get_versions
-        run: |
-          NUMPY_URL="https://api.github.com/repos/numpy/numpy/releases/latest"
-          NUMPY_VERSION="$(curl -s "${NUMPY_URL}" | jq -r '.tag_name')"
-          echo "NUMPY_VERSION=${NUMPY_VERSION}" >>$GITHUB_ENV
+      - name: Check out repository
+        uses: actions/checkout@v4
 
-          SCIPY_URL="https://api.github.com/repos/scipy/scipy/releases/latest"
-          SCIPY_VERSION="$(curl -s "${SCIPY_URL}" | jq -r '.tag_name')"
-          echo "SCIPY_VERSION=${SCIPY_VERSION}" >>$GITHUB_ENV
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: 0.6.x
+          enable-cache: true
+          cache-dependency-glob: "**/pyproject.toml"
+
+      - name: Get latest release and supported Python versions
+        run: |
+          REPO="${{ inputs.package }}/${{ inputs.package }}"
+          URL="https://api.github.com/repos/${REPO}/releases/latest"
+          VERSION="$(curl -s "${URL}" | jq -r '.tag_name')"
+          echo "VERSION=${VERSION}" >>$GITHUB_ENV
+          echo "PY_VERSIONS=$(uv run tools/py_versions ${REPO} -v ${VERSION})" >>$GITHUB_ENV
 
   build:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2019]
+        os: [ubuntu-22.04]
         # os: [ubuntu-22.04, windows-2019]
-        python: [3.12]
-        # package: [numpy, scipy]
-        package: [scipy]
+        python: ${{ fromJson(needs.version.outputs.python) }}
 
-    name: ${{ matrix.package }}-cp${{ matrix.python }} (${{ matrix.os }})
+    name: ${{ inputs.package }}-${{ matrix.python }} (${{ matrix.os }})
 
-    needs: versions
+    needs: version
 
     runs-on: ${{ matrix.os }}
 
@@ -53,11 +67,6 @@ jobs:
 
           echo "SRC_DIR=${{ github.workspace }}/src" >>$GITHUB_ENV
           cd ../.. && echo "MKL_DIR=$(pwd)/mkl" >>$GITHUB_ENV
-
-          case "${{ matrix.package }}" in
-            numpy) echo "SRC_VERSION=${{ needs.versions.outputs.numpy }}" >>$GITHUB_ENV ;;
-            scipy) echo "SRC_VERSION=${{ needs.versions.outputs.scipy }}" >>$GITHUB_ENV ;;
-          esac
 
       - name: Check out repository
         uses: actions/checkout@v4
@@ -78,7 +87,7 @@ jobs:
         run: |
           choco install rtools -y --no-progress --force --version=4.0.0.20220206
           echo "c:\rtools40\ucrt64\bin;" >>$GITHUB_PATH
-        if: runner.os == 'windows' && matrix.package == 'scipy'
+        if: runner.os == 'windows' && inputs.package == 'scipy'
 
       - name: Install MKL libraries
         run: |
@@ -105,8 +114,8 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
         with:
-          repository: ${{ matrix.package}}/${{ matrix.package }}
-          ref: ${{ env.SRC_VERSION }}
+          repository: ${{ inputs.package}}/${{ inputs.package }}
+          ref: ${{ needs.version.outputs.package }}
           path: ${{ env.SRC_DIR }}
           submodules: recursive
 
@@ -129,7 +138,7 @@ jobs:
         run: |
           # Apply patches
           cd "${{ env.SRC_DIR }}"
-          git apply "${{ github.workspace }}"/patches/${{ matrix.package }}/*.patch
+          git apply "${{ github.workspace }}"/patches/${{ inputs.package }}/*.patch
 
           # Fix MKL pkg-config on Windows
           if [[ "${{ runner.os }}" == "Windows" ]]; then
@@ -140,12 +149,10 @@ jobs:
       - name: Build wheel
         working-directory: ${{ env.SRC_DIR }}
         run: |
-          case "${{ matrix.package }}" in
+          case "${{ inputs.package }}" in
             numpy)
               flags="-Csetup-args=-Dblas=mkl-sdl \
                      -Csetup-args=-Dlapack=mkl-sdl \
-                     -Csetup-args=-Duse-ilp64=true \
-                     -Csetup-args=-Dmkl-threading=iomp \
                      -Csetup-args=-Dallow-noblas=false"
               [[ "${{ runner.os }}" == "Windows" ]] && flags="${flags} -Csetup-args=--vsenv"
               ;;
@@ -180,7 +187,7 @@ jobs:
           # Set up test environment.
           export VIRTUAL_ENV="testenv"
           uv venv "${VIRTUAL_ENV}"
-          case "${{ matrix.package }}" in
+          case "${{ inputs.package }}" in
             numpy)
               uv pip install -r "${{ env.SRC_DIR }}"/requirements/test_requirements.txt
               uv pip install threadpoolctl
@@ -196,7 +203,7 @@ jobs:
             Linux) source "${VIRTUAL_ENV}"/bin/activate ;;
             Windows) source "${VIRTUAL_ENV}"/Scripts/activate ;;
           esac
-          case "${{ matrix.package }}" in
+          case "${{ inputs.package }}" in
             numpy) python tools/numpy_tests.py ;;
             scipy) python -c 'import sys; import scipy; sys.exit(not scipy.test())' ;;
           esac
@@ -204,11 +211,11 @@ jobs:
       - name: Archive
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.package }}-cp${{ matrix.python }}-${{ runner.os }}
+          name: ${{ inputs.package }}-${{ matrix.python }}-${{ runner.os }}
           path: wheelhouse/*.whl
 
   commit:
-    needs: [versions, build]
+    needs: [version, build]
 
     runs-on: ubuntu-latest
 
@@ -258,8 +265,7 @@ jobs:
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add .
-          # TODO: Fix commit message
-          git commit -m "ci: Add wheels for scipy-${{ needs.versions.outputs.scipy }}"
+          git commit -m "ci: Add wheels for ${{ inputs.package }}-${{ needs.version.outputs.package }}"
           git push origin HEAD:wheelhouse
 
 ...

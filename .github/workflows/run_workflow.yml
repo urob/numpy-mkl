@@ -1,0 +1,13 @@
+name: Build wheels
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    uses: ./.github/workflows/wheels.yml
+    with:
+      package: numpy

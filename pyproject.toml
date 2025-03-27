@@ -4,8 +4,12 @@ version = "0.1.0"
 
 description = "NumPy wheels with MKL support"
 authors = [{name = "Robert Ulbricht"}]
-requires-python = ">=3.09"
+requires-python = ">=3.11"
 readme = "README.md"
+dependencies = [
+    "packaging>=24.2",
+    "requests>=2.32.3",
+]
 
 [tool.ruff]
 line-length = 88

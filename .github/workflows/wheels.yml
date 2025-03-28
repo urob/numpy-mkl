@@ -3,14 +3,18 @@ name: Wheels
 on:
   workflow_call:
     inputs:
-      package:
+      name:
         required: true
         type: string
-        description: 'Package to build (numpy, scipy)'
+        description: "Package to build (numpy, scipy)"
+      repo:
+        required: true
+        type: string
+        description: "Repo to build (numpy, scipy)"
       force-build:
         required: false
         type: boolean
-        description: 'Force build even if wheels exist'
+        description: "Force build even if wheels exist"
 
 jobs:
   version:
@@ -31,23 +35,32 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "**/pyproject.toml"
 
-      - name: Get latest release and supported Python versions
+      - name: Get latest release
         run: |
-          REPO="${{ inputs.package }}/${{ inputs.package }}"
-          URL="https://api.github.com/repos/${REPO}/releases/latest"
-          VERSION="$(curl -s "${URL}" | jq -r '.tag_name')"
+          URL="https://api.github.com/repos/${{ inputs.repo }}/releases/latest"
+          if [[ "${{ inputs.name }}" == "mkl-service" ]]; then
+            # Intel no longer creates GH releases. TODO: use latest tag if it is valid semver.
+            VERSION="v2.4.2"
+          else
+            VERSION="$(curl -s "${URL}" | jq -r '.tag_name')"
+          fi
           echo "VERSION=${VERSION}" >>$GITHUB_ENV
-          echo "PY_VERSIONS=$(uv run tools/py_versions ${REPO} -v ${VERSION})" >>$GITHUB_ENV
+
+      - name: Get supported Python versions
+        run: |
+          [[ "${{ inputs.name }}" == "mkl-service" ]] && args="--setup"
+          echo "PY_VERSIONS=$(uv run tools/py_versions ${{ inputs.repo }} \
+            -v ${{ env.VERSION }} ${args})" >>$GITHUB_ENV
 
   build:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04]
-        # os: [ubuntu-22.04, windows-2019]
+        os: [ubuntu-22.04, windows-2019]
+        # python: [cp312]
         python: ${{ fromJson(needs.version.outputs.python) }}
 
-    name: ${{ inputs.package }}-${{ matrix.python }} (${{ matrix.os }})
+    name: ${{ inputs.name }}-${{ matrix.python }} (${{ matrix.os }})
 
     needs: version
 
@@ -60,16 +73,34 @@ jobs:
         shell: bash
 
     steps:
-      - name: Set environment variables
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Check out src
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.repo }}
+          ref: ${{ needs.version.outputs.package }}
+          path: src
+          submodules: recursive
+
+      - name: Prepare environment
         run: |
           echo "UV_PYTHON=${{ matrix.python }}" >>$GITHUB_ENV
           echo "UV_PYTHON_PREFERENCE=only-managed" >>$GITHUB_ENV
 
-          echo "SRC_DIR=${{ github.workspace }}/src" >>$GITHUB_ENV
-          cd ../.. && echo "MKL_DIR=$(pwd)/mkl" >>$GITHUB_ENV
+          case "${{ runner.os }}" in
+            Linux) echo "venv_bin=bin" >>$GITHUB_ENV ;;
+            Windows) echo "venv_bin=Scripts" >>$GITHUB_ENV ;;
+          esac
 
-      - name: Check out repository
-        uses: actions/checkout@v4
+          # Move src to avoid pyproject conflicts. SRC_DIR is set relative to GITHUB_WORKSPACE to
+          # preserve the "D:\" prefix on Windows. (Pure Linux paths aren't supported as arguments
+          # to 'working-directory'.)
+          mv src ../../ && echo "SRC_DIR=${{ github.workspace }}/../../src" >>$GITHUB_ENV
+
+          # Keep MKL directory short as it ends up in the final build.
+          echo "MKL_DIR=$(realpath "${{ github.workspace }}"/../../mkl)" >>$GITHUB_ENV
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
@@ -77,22 +108,10 @@ jobs:
           version: 0.6.x
           enable-cache: false
 
-      - name: Install pkg-config (Windows)
-        run: |
-          choco install -y --no-progress --stoponfirstfailure \
-              --checksum 6004DF17818F5A6DBF19CB335CC92702 pkgconfiglite
-        if: runner.os == 'windows'
-
-      - name: Install gcc (Windows)
-        run: |
-          choco install rtools -y --no-progress --force --version=4.0.0.20220206
-          echo "c:\rtools40\ucrt64\bin;" >>$GITHUB_PATH
-        if: runner.os == 'windows' && inputs.package == 'scipy'
-
       - name: Install MKL libraries
         run: |
-          export VIRTUAL_ENV="${{ env.MKL_DIR }}"
-          uv venv "${VIRTUAL_ENV}"
+          uv venv "${{ env.MKL_DIR }}"
+          source "${{ env.MKL_DIR }}/${{ env.venv_bin }}"/activate
           uv pip install mkl-devel
 
           # Get MKL version.
@@ -100,10 +119,6 @@ jobs:
               >>$GITHUB_ENV
 
           # Get pkg-config path.
-          case "${{ runner.os }}" in
-            Linux) source "${VIRTUAL_ENV}"/bin/activate ;;
-            Windows) source "${VIRTUAL_ENV}"/Scripts/activate ;;
-          esac
           echo "PKG_CONFIG_PATH=$(python tools/get_file_in_pkg.py mkl-sdl.pc \
               --pkg mkl-devel --parent)" >>$GITHUB_ENV
 
@@ -111,19 +126,40 @@ jobs:
           cat $(python tools/get_file_in_pkg.py LICENSE.txt --pkg mkl-devel) \
               >>"${{ github.workspace }}/patches/LICENSE_MKL.txt"
 
-      - name: Check out source
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ inputs.package}}/${{ inputs.package }}
-          ref: ${{ needs.version.outputs.package }}
-          path: ${{ env.SRC_DIR }}
-          submodules: recursive
+          # Add .so -> .so.2 symlinks to fix linking for mkl-service.
+          cd "${{ env.MKL_DIR }}"/lib
+          for i in $( ls libmkl*.so.2 ); do ln -s $i ${i%.*}; done
+
+      - name: Store build information
+        run: |
+          mkdir -p wheelhouse
+          cat >wheelhouse/versions-${{ matrix.python}}-${{ runner.os }}.json <<EOF
+          {
+            "package": "${{ inputs.name }}",
+            "version": "${{ needs.version.outputs.package }}",
+            "python": "${{ matrix.python }}",
+            "os": "${{ runner.os }}",
+            "mkl": "${{ env.MKL_VERSION }}"
+          }
+          EOF
+
+      - name: Exit if wheel exists
+        run: |
+          uv venv checkwheel && source checkwheel/"${{ env.venv_bin }}"/activate
+          uv pip install semver
+          python tools/build_data wheelhouse/versions-${{ matrix.python }}-${{ runner.os }}.json \
+              -o build.json --check
+        if: inputs.force-build != 'true'
 
       - name: Add MKL to runtime dependencies
         working-directory: ${{ env.SRC_DIR }}
         run: |
           # Pin runtime library to the exact version used for compiling.
-          uv add --no-sync mkl=="${MKL_VERSION}" mkl-service
+          if [[ "${{ inputs.name }}" == "mkl-service" ]]; then
+            sed -i "s/install_requires=\[\]/install_requires=['mkl==${MKL_VERSION}']/" setup.py
+          else
+            uv add --no-sync mkl=="${MKL_VERSION}" mkl-service
+          fi
 
       - name: Add MKL licence
         working-directory: ${{ env.SRC_DIR }}
@@ -133,43 +169,85 @@ jobs:
           echo "" >>LICENSE.txt
           cat LICENSES_bundled.txt >>LICENSE.txt
           cat "${{ github.workspace }}/patches/LICENSE_MKL.txt" >>LICENSE.txt
+        if: inputs.name != 'mkl-service'
 
       - name: Apply patches
         run: |
-          # Apply patches
+          # Apply patches.
           cd "${{ env.SRC_DIR }}"
-          git apply "${{ github.workspace }}"/patches/${{ inputs.package }}/*.patch
+          git apply "${{ github.workspace }}"/patches/${{ inputs.name }}/*.patch
 
-          # Fix MKL pkg-config on Windows
+          # Fix MKL pkg-config on Windows.
           if [[ "${{ runner.os }}" == "Windows" ]]; then
             cp "${{ github.workspace }}"/patches/mkl/*.pc "${PKG_CONFIG_PATH}/"
           fi
+
+      - name: Install Windows build dependencies
+        run: |
+          # Use fall-through operator ';&' to match all cases.
+          case "${{ inputs.name }}" in
+            numpy | scipy)
+              # Pkg-config is required for numpy and scipy.
+              choco install -y --no-progress --stoponfirstfailure \
+                  --checksum 6004DF17818F5A6DBF19CB335CC92702 pkgconfiglite
+              ;&
+            scipy)
+              # Gcc is required for scipy.
+              choco install rtools -y --no-progress --force --version=4.0.0.20220206
+              echo "c:\rtools40\ucrt64\bin;" >>$GITHUB_PATH
+              ;&
+          esac
+        if: runner.os == 'windows'
 
       # TODO: add link time optimization flags once everything is working (-Db_lto)
       - name: Build wheel
         working-directory: ${{ env.SRC_DIR }}
         run: |
-          case "${{ inputs.package }}" in
+          case "${{ inputs.name }}" in
             numpy)
-              flags="-Csetup-args=-Dblas=mkl-sdl \
-                     -Csetup-args=-Dlapack=mkl-sdl \
-                     -Csetup-args=-Dallow-noblas=false"
-              [[ "${{ runner.os }}" == "Windows" ]] && flags="${flags} -Csetup-args=--vsenv"
+              args="-Csetup-args=-Dblas=mkl-sdl \
+                    -Csetup-args=-Dlapack=mkl-sdl \
+                    -Csetup-args=-Dallow-noblas=false \
+                    -Csetup-args=-Dcpu-baseline=F16C \
+                    -Csetup-args=-Dcpu-dispatch=AVX512_ICL"
+              [[ "${{ runner.os }}" == "Windows" ]] && args="${args} -Csetup-args=--vsenv"
               ;;
+
             scipy)
               # MSVC is unable to compile Pythran, use gcc or set -Duse-pythran=false.
-              flags="-Csetup-args=-Dblas=mkl-sdl \
-                     -Csetup-args=-Dlapack=mkl-sdl \
-                     -Csetup-args=-Duse-g77-abi=true"
+              args="-Csetup-args=-Dblas=mkl-sdl \
+                    -Csetup-args=-Dlapack=mkl-sdl \
+                    -Csetup-args=-Duse-g77-abi=true"
+              ;;
+
+            'mkl-service')
+              case "${{ runner.os }}" in
+                Linux) export MKLROOT="${{ env.MKL_DIR }}" ;;
+                Windows) export MKLROOT="${{ env.MKL_DIR }}"/Library ;;
+              esac
+              export CFLAGS="${CFLAGS} -fno-fast-math"
+              args="--no-build-isolation"
+              uv venv buildenv && source buildenv/"${{ env.venv_bin }}"/activate
+              uv pip install setuptools cython
               ;;
           esac
-          uv build --wheel --index https://urob.github.io/numpy-mkl ${flags}
+          uv build --wheel --index https://urob.github.io/numpy-mkl ${args}
 
       - name: Repair wheel (Linux)
         run: |
           mkdir -p wheelhouse
           uvx auditwheel repair "${{ env.SRC_DIR }}"/dist/*.whl -w wheelhouse \
               --exclude 'libmkl*' --plat manylinux_2_35_x86_64
+
+          # Set runpath to location of MKL libraries.
+          if [[ "${{ inputs.name }}" == "mkl-service" ]]; then
+            uvx wheel unpack wheelhouse/mkl_service*.whl --dest tmp
+            cd tmp/mkl_service*/mkl
+            uvx patchelf --set-rpath '$ORIGIN/../../..:$ORIGIN/../..' _mklinit.*.so
+            uvx patchelf --set-rpath '$ORIGIN/../../..:$ORIGIN/../..' _py_mkl_service.*.so
+            cd ../../..
+            uvx wheel pack tmp/mkl_service*/ --dest wheelhouse
+          fi
         if: runner.os == 'linux'
 
       - name: Repair wheel (Windows)
@@ -185,34 +263,33 @@ jobs:
           rm -rf "${{ env.MKL_DIR }}"
 
           # Set up test environment.
-          export VIRTUAL_ENV="testenv"
-          uv venv "${VIRTUAL_ENV}"
-          case "${{ inputs.package }}" in
+          uv venv testenv && source testenv/"${{ env.venv_bin }}"/activate
+          uv pip install wheelhouse/*.whl --index https://urob.github.io/numpy-mkl
+
+          case "${{ inputs.name }}" in
             numpy)
               uv pip install -r "${{ env.SRC_DIR }}"/requirements/test_requirements.txt
               uv pip install threadpoolctl
+              python tools/numpy_tests.py
               ;;
             scipy)
               uv pip install -r "${{ env.SRC_DIR }}"/requirements/test.txt \
                   --index https://urob.github.io/numpy-mkl
+              python -c 'import sys; import scipy; sys.exit(not scipy.test())'
               ;;
-          esac
-          uv pip install wheelhouse/*.whl
-
-          case "${{ runner.os }}" in
-            Linux) source "${VIRTUAL_ENV}"/bin/activate ;;
-            Windows) source "${VIRTUAL_ENV}"/Scripts/activate ;;
-          esac
-          case "${{ inputs.package }}" in
-            numpy) python tools/numpy_tests.py ;;
-            scipy) python -c 'import sys; import scipy; sys.exit(not scipy.test())' ;;
+            mkl-service)
+              uv pip install pytest
+              pytest -vv --pyargs mkl
+              ;;
           esac
 
       - name: Archive
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.package }}-${{ matrix.python }}-${{ runner.os }}
-          path: wheelhouse/*.whl
+          name: ${{ inputs.name }}-${{ matrix.python }}-${{ runner.os }}
+          path: |
+            wheelhouse/*.whl
+            wheelhouse/*.json
 
   commit:
     needs: [version, build]
@@ -234,26 +311,22 @@ jobs:
 
       - name: Create directory
         run: |
-          mkdir -p wheelhouse/numpy
-          mkdir -p wheelhouse/scipy
+          mkdir -p wheelhouse/${{ inputs.name }}
 
       - uses: actions/download-artifact@v4
         with:
-          pattern: numpy-*
-          path: wheelhouse/numpy
+          pattern: ${{ inputs.name }}-*
+          path: wheelhouse/${{ inputs.name }}
           merge-multiple: true
 
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: scipy-*
-          path: wheelhouse/scipy
-          merge-multiple: true
+      - name: Update build data
+        run: |
+          main/tools/build_data wheelhouse/${{ inputs.name }}/*.json -o main/build.json
+          rm wheelhouse/${{ inputs.name }}/*.json
 
       - name: Update index
         run: |
-          main/tools/make_index wheelhouse/numpy/ --package numpy
-          main/tools/make_index wheelhouse/scipy/ --package scipy
-          main/tools/link_pypi wheelhouse/
+          main/tools/make_index wheelhouse/${{ inputs.name}}/ --package ${{ inputs.name }}
 
       - name: Commit wheels
         working-directory: wheelhouse
@@ -265,8 +338,21 @@ jobs:
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add .
-          git commit -m "ci: Add wheels for ${{ inputs.package }}-${{ needs.version.outputs.package }}"
+          git commit -m "ci: Add wheels for ${{ inputs.name }}-${{ needs.version.outputs.package }}"
           git push origin HEAD:wheelhouse
+
+      - name: Commit build data
+        working-directory: main
+        run: |
+          if [[ -z "$(git status --porcelain)" ]]; then
+              echo "No changes to commit"
+              exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .
+          git commit -m "ci: Store build data for ${{ inputs.name }}-${{ needs.version.outputs.package }}"
+          git push origin HEAD:main
 
 ...
 # vim: set tw=98:

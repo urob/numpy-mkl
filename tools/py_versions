@@ -9,18 +9,27 @@ from packaging.specifiers import SpecifierSet
 parser = argparse.ArgumentParser(description='Get supported Python releases')
 parser.add_argument('repo', type=str, help='repository name')
 parser.add_argument('-v', '--version', type=str, help='package version')
+parser.add_argument(
+    '--setup', action='store_true', help='use setup.py instead of pyproject.toml'
+)
 
 args = parser.parse_args()
+file = 'setup.py' if args.setup else 'pyproject.toml'
 
 # List of maintained Python releases. Update this once a year when a new
 # release is available (usually early October).
 VERSIONS = ('3.9', '3.10', '3.11', '3.12', '3.13')
 
-URL = 'https://raw.githubusercontent.com/{repo}/refs/tags/{version}/pyproject.toml'
+URL = 'https://raw.githubusercontent.com/{repo}/refs/tags/{version}/{file}'
 
-response = requests.get(URL.format(repo=args.repo, version=args.version))
+response = requests.get(URL.format(repo=args.repo, version=args.version, file=file))
 response.raise_for_status()
 
-project = tomllib.loads(response.text)['project']
-supported_versions = SpecifierSet(project['requires-python']).filter(VERSIONS)
+if args.setup:
+    line = next(l for l in response.text.splitlines() if 'python_requires' in l)
+    requires = line.split('=', 1)[1].strip().strip('\'",')
+else:
+    requires = tomllib.loads(response.text)['project']['requires-python']
+
+supported_versions = SpecifierSet(requires).filter(VERSIONS)
 print(['cp' + v.replace('.', '') for v in supported_versions])

@@ -6,7 +6,6 @@ packages=(
     "intel-cmplr-lib-ur"
     "intel-openmp"
     "mkl"
-    "mkl-service"
     "tbb"
     "tcmlib"
     "umf"

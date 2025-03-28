@@ -10,4 +10,7 @@ jobs:
   build:
     uses: ./.github/workflows/wheels.yml
     with:
-      package: numpy
+      name: mkl-service
+      repo: IntelPython/mkl-service
+      # name: numpy
+      # repo: numpy/numpy

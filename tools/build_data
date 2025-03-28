@@ -1,0 +1,41 @@
+#!/usr/bin/env python
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+parser = argparse.ArgumentParser(description='Store build meta data')
+parser.add_argument('infiles', nargs='+', help='input file(s)')
+parser.add_argument('-o', '--out-file', required=True, type=str, help='output file')
+parser.add_argument(
+    '--check', action='store_true', help='check if build already exists'
+)
+
+args = parser.parse_args()
+
+if args.check:
+    import semver
+
+outfile = Path(args.out_file)
+
+if outfile.exists():
+    meta_info = json.loads(outfile.read_text(encoding='UTF-8'))
+else:
+    meta_info = {}
+
+for infile in args.infiles:
+    meta = json.loads(Path(infile).read_text(encoding='UTF-8'))
+    build = (meta['package'], meta['version'], meta['python'], meta['os'].lower())
+    key = '-'.join(build)
+
+    if args.check:
+        if key not in meta_info:
+            sys.exit(0)
+        mkl_is_newer = semver.compare(meta['mkl'], meta_info[key]['mkl']) > 0
+        sys.exit(not mkl_is_newer)
+
+    meta_info[key] = {'mkl': meta['mkl']}
+
+with outfile.open('w', encoding='UTF-8') as f:
+    json.dump(meta_info, f, indent=2, sort_keys=True)

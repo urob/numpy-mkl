@@ -312,7 +312,7 @@ jobs:
 
       - name: Update build data
         run: |
-          main/tools/build_data.py wheelhouse/${{ inputs.name }}/*.json --store main/build.json
+          main/tools/store_info.py wheelhouse/${{ inputs.name }}/*.json --store main/build.json
           rm wheelhouse/${{ inputs.name }}/*.json
 
       - name: Update index

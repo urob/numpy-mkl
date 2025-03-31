@@ -5,8 +5,8 @@ import itertools
 import json
 
 import requests
-from build_data import Build, fetch_store
 from packaging.specifiers import SpecifierSet
+from store_info import Build, fetch_store
 
 REQUESTS_TIMEOUT = 45
 PYPY = 'https://pypi.org/pypi'
@@ -59,14 +59,14 @@ class FetchBuildMatrix:
         raise ValueError(f'Unknown OS {run}')
 
     def exclude(self, python_version, runs_on):
-        data = {
+        info = {
             'name': self.package_name,
             'version': self.package_version,
             'python': python_version,
             'os': self.get_os(runs_on),
             'mkl': self.mkl_version,
         }
-        return Build(data).exclude(fetch_store(self.store))
+        return Build(info).exclude(fetch_store(self.store))
 
     def get_matrix(self):
         matrix = {

@@ -1,0 +1,28 @@
+name: Build wheels
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  mkl-service:
+    uses: ./.github/workflows/wheels.yml
+    with:
+      name: mkl-service
+      repo: IntelPython/mkl-service
+
+  numpy:
+    uses: ./.github/workflows/wheels.yml
+    with:
+      name: numpy
+      repo: numpy/numpy
+    needs: mkl-service
+
+  scipy:
+    uses: ./.github/workflows/wheels.yml
+    with:
+      name: scipy
+      repo: scipy/scipy
+    needs: [mkl-service, numpy]

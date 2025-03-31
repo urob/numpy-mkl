@@ -9,6 +9,7 @@ readme = "README.md"
 dependencies = [
     "packaging>=24.2",
     "requests>=2.32.3",
+    "semver>=3.0.4",
 ]
 
 [tool.ruff]

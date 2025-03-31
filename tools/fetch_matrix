@@ -1,0 +1,112 @@
+#!/usr/bin/env python
+
+import argparse
+import itertools
+import json
+
+import requests
+from build_data import Build, fetch_store
+from packaging.specifiers import SpecifierSet
+
+REQUESTS_TIMEOUT = 45
+PYPY = 'https://pypi.org/pypi'
+
+# List of maintained Python releases. Update this once a year when a new
+# release is available (usually early October).
+PYTHON_VERSIONS = ('3.9', '3.10', '3.11', '3.12', '3.13')
+
+
+class FetchPackageData:
+    def __init__(self, package_name):
+        self.package_data = self.get_package_data(package_name)['info']
+
+    def get_package_data(self, package_name):
+        json_url = f'{PYPY}/{package_name}/json'
+        response = requests.get(json_url, timeout=REQUESTS_TIMEOUT)
+        if response.status_code == 200:
+            return response.json()
+
+        if response.status_code == 404:
+            raise FetchPackageDataError(f'Not found {package_name}')
+
+        raise FetchPackageDataError('Failed to retrieve version information from PyPI.')
+
+    def get_package_version(self):
+        return self.package_data['version']
+
+    def get_python_versions(self):
+        requires_python = self.package_data['requires_python']
+        supported_versions = SpecifierSet(requires_python).filter(PYTHON_VERSIONS)
+        return ['cp' + v.replace('.', '') for v in supported_versions]
+
+
+class FetchBuildMatrix:
+    def __init__(self, package_name, store, runs_on, force_build=False):
+        package_data = FetchPackageData(package_name)
+        self.package_name = package_name
+        self.package_version = package_data.get_package_version()
+        self.python_versions = package_data.get_python_versions()
+        self.mkl_version = FetchPackageData('mkl').get_package_version()
+        self.store = store
+        self.runs_on = runs_on
+        self.force_build = force_build
+
+    def get_os(self, run):
+        if run.startswith('ubuntu'):
+            return 'linux'
+        if run.startswith('windows'):
+            return 'windows'
+        raise ValueError(f'Unknown OS {run}')
+
+    def exclude(self, python_version, runs_on):
+        data = {
+            'name': self.package_name,
+            'version': self.package_version,
+            'python': python_version,
+            'os': self.get_os(runs_on),
+            'mkl': self.mkl_version,
+        }
+        return Build(data).exclude(fetch_store(self.store))
+
+    def get_matrix(self):
+        matrix = {
+            'runs-on': self.runs_on,
+            'python': self.python_versions,
+            'exclude': [],
+        }
+        should_run = False
+        for os, py in itertools.product(self.runs_on, self.python_versions):
+            if not self.force_build and self.exclude(py, os):
+                matrix['exclude'].append(
+                    {
+                        'runs-on': os,
+                        'python': py,
+                    }
+                )
+            else:
+                should_run = True
+        return json.dumps(matrix) if should_run else 'null'
+
+
+class FetchPackageDataError(Exception):
+    pass
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Fetch GHA build matrix')
+    parser.add_argument('name', type=str, help='package name')
+    parser.add_argument('-s', '--store', type=str, help='path to build store')
+    parser.add_argument(
+        '-r', '--runs-on', action='append', type=str, help='operating systems to run on'
+    )
+    parser.add_argument('-f', '--force-build', action='store_true', help='force build')
+
+    args = parser.parse_args()
+
+    if args.runs_on:
+        fetcher = FetchBuildMatrix(
+            args.name, args.store, args.runs_on, force_build=args.force_build
+        )
+        print(fetcher.get_matrix())
+    else:
+        print(FetchPackageData(args.name).get_package_version())

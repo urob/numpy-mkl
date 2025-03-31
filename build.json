@@ -1,32 +1,32 @@
 {
-  "mkl-service-v2.4.2-cp310-linux": {
+  "mkl-service-2.4.2-cp310-linux": {
     "mkl": "2025.1.0"
   },
-  "mkl-service-v2.4.2-cp310-windows": {
+  "mkl-service-2.4.2-cp310-windows": {
     "mkl": "2025.1.0"
   },
-  "mkl-service-v2.4.2-cp311-linux": {
+  "mkl-service-2.4.2-cp311-linux": {
     "mkl": "2025.1.0"
   },
-  "mkl-service-v2.4.2-cp311-windows": {
+  "mkl-service-2.4.2-cp311-windows": {
     "mkl": "2025.1.0"
   },
-  "mkl-service-v2.4.2-cp312-linux": {
+  "mkl-service-2.4.2-cp312-linux": {
     "mkl": "2025.1.0"
   },
-  "mkl-service-v2.4.2-cp312-windows": {
+  "mkl-service-2.4.2-cp312-windows": {
     "mkl": "2025.1.0"
   },
-  "mkl-service-v2.4.2-cp313-linux": {
+  "mkl-service-2.4.2-cp313-linux": {
     "mkl": "2025.1.0"
   },
-  "mkl-service-v2.4.2-cp313-windows": {
+  "mkl-service-2.4.2-cp313-windows": {
     "mkl": "2025.1.0"
   },
-  "mkl-service-v2.4.2-cp39-linux": {
+  "mkl-service-2.4.2-cp39-linux": {
     "mkl": "2025.1.0"
   },
-  "mkl-service-v2.4.2-cp39-windows": {
+  "mkl-service-2.4.2-cp39-windows": {
     "mkl": "2025.1.0"
   }
 }

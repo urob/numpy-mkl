@@ -17,12 +17,12 @@ on:
         description: "Force build even if wheels exist"
 
 jobs:
-  version:
+  meta:
     runs-on: ubuntu-latest
 
     outputs:
-      package: ${{ env.VERSION }}
-      python: ${{ env.PY_VERSIONS }}
+      version: ${{ env.VERSION }}
+      matrix: ${{ env.MATRIX }}
 
     steps:
       - name: Check out repository
@@ -33,38 +33,34 @@ jobs:
         with:
           version: 0.6.x
           enable-cache: true
-          cache-dependency-glob: "**/pyproject.toml"
+          cache-dependency-glob: |
+            **/pyproject.toml
+            **/uv.lock
 
-      - name: Get latest release
+      - name: Fetch latest release
         run: |
-          URL="https://api.github.com/repos/${{ inputs.repo }}/releases/latest"
-          if [[ "${{ inputs.name }}" == "mkl-service" ]]; then
-            # Intel no longer creates GH releases. TODO: use latest tag if it is valid semver.
-            VERSION="v2.4.2"
-          else
-            VERSION="$(curl -s "${URL}" | jq -r '.tag_name')"
-          fi
-          echo "VERSION=${VERSION}" >>$GITHUB_ENV
+          echo "VERSION=$(uv run tools/fetch_matrix ${{ inputs.name }})" >>$GITHUB_ENV
 
-      - name: Get supported Python versions
+      - name: Fetch build matrix
         run: |
-          [[ "${{ inputs.name }}" == "mkl-service" ]] && args="--setup"
-          echo "PY_VERSIONS=$(uv run tools/py_versions ${{ inputs.repo }} \
-            -v ${{ env.VERSION }} ${args})" >>$GITHUB_ENV
+          ${{ inputs.force-build }} && extra_args="-force-build"
+          MATRIX="$(uv run tools/fetch_matrix ${{ inputs.name }} ${extra_args} \
+            --store build.json --runs-on ubuntu-22.04 --runs-on windows-2019)"
+          echo "MATRIX=${MATRIX}" >>$GITHUB_ENV
+          echo "${MATRIX}" | yq -P -o yaml
 
   build:
+    if: ${{ needs.meta.outputs.matrix != 'null' }}
+
     strategy:
       fail-fast: false
-      matrix:
-        os: [ubuntu-22.04, windows-2019]
-        # python: [cp312]
-        python: ${{ fromJson(needs.version.outputs.python) }}
+      matrix: ${{ fromJson(needs.meta.outputs.matrix) }}
 
-    name: ${{ inputs.name }}-${{ matrix.python }} (${{ matrix.os }})
+    name: ${{ inputs.name }}-${{ matrix.python }} (${{ matrix.runs-on }})
 
-    needs: version
+    needs: meta
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.runs-on }}
 
     continue-on-error: true
 
@@ -80,7 +76,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.repo }}
-          ref: ${{ needs.version.outputs.package }}
+          ref: v${{ needs.meta.outputs.version }}
           path: src
           submodules: recursive
 
@@ -129,27 +125,6 @@ jobs:
           # Add .so -> .so.2 symlinks to fix linking for mkl-service.
           cd "${{ env.MKL_DIR }}"/lib
           for i in $( ls libmkl*.so.2 ); do ln -s $i ${i%.*}; done
-
-      - name: Store build information
-        run: |
-          mkdir -p wheelhouse
-          cat >wheelhouse/versions-${{ matrix.python}}-${{ runner.os }}.json <<EOF
-          {
-            "package": "${{ inputs.name }}",
-            "version": "${{ needs.version.outputs.package }}",
-            "python": "${{ matrix.python }}",
-            "os": "${{ runner.os }}",
-            "mkl": "${{ env.MKL_VERSION }}"
-          }
-          EOF
-
-      - name: Exit if wheel exists
-        run: |
-          uv venv checkwheel && source checkwheel/"${{ env.venv_bin }}"/activate
-          uv pip install semver
-          python tools/build_data wheelhouse/versions-${{ matrix.python }}-${{ runner.os }}.json \
-              -o build.json --check
-        if: inputs.force-build != 'true'
 
       - name: Add MKL to runtime dependencies
         working-directory: ${{ env.SRC_DIR }}
@@ -283,6 +258,19 @@ jobs:
               ;;
           esac
 
+      - name: Store build information
+        run: |
+          mkdir -p wheelhouse
+          cat >wheelhouse/versions-${{ matrix.python}}-${{ runner.os }}.json <<EOF
+          {
+            "name": "${{ inputs.name }}",
+            "version": "${{ needs.meta.outputs.version }}",
+            "python": "${{ matrix.python }}",
+            "os": "${{ runner.os }}",
+            "mkl": "${{ env.MKL_VERSION }}"
+          }
+          EOF
+
       - name: Archive
         uses: actions/upload-artifact@v4
         with:
@@ -292,7 +280,9 @@ jobs:
             wheelhouse/*.json
 
   commit:
-    needs: [version, build]
+    if: ${{ needs.meta.outputs.matrix != 'null' }}
+
+    needs: [meta, build]
 
     runs-on: ubuntu-latest
 
@@ -321,7 +311,7 @@ jobs:
 
       - name: Update build data
         run: |
-          main/tools/build_data wheelhouse/${{ inputs.name }}/*.json -o main/build.json
+          main/tools/build_data.py wheelhouse/${{ inputs.name }}/*.json --store main/build.json
           rm wheelhouse/${{ inputs.name }}/*.json
 
       - name: Update index
@@ -338,7 +328,7 @@ jobs:
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add .
-          git commit -m "ci: Add wheels for ${{ inputs.name }}-${{ needs.version.outputs.package }}"
+          git commit -m "ci: Add wheels for ${{ inputs.name }}-${{ needs.meta.outputs.version }}"
           git push origin HEAD:wheelhouse
 
       - name: Commit build data
@@ -351,7 +341,7 @@ jobs:
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add .
-          git commit -m "ci: Store build data for ${{ inputs.name }}-${{ needs.version.outputs.package }}"
+          git commit -m "ci: Store info for ${{ inputs.name }}-${{ needs.meta.outputs.version }}"
           git push origin HEAD:main
 
 ...

@@ -278,6 +278,7 @@ jobs:
           path: |
             wheelhouse/*.whl
             wheelhouse/*.json
+          retention-days: 1
 
   commit:
     if: ${{ needs.meta.outputs.matrix != 'null' }}

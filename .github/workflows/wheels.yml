@@ -115,11 +115,11 @@ jobs:
               >>$GITHUB_ENV
 
           # Get pkg-config path.
-          echo "PKG_CONFIG_PATH=$(python tools/get_file_in_pkg.py mkl-sdl.pc \
+          echo "PKG_CONFIG_PATH=$(python tools/get_file_in_pkg mkl-sdl.pc \
               --pkg mkl-devel --parent)" >>$GITHUB_ENV
 
           # Fetch MKL license.
-          cat $(python tools/get_file_in_pkg.py LICENSE.txt --pkg mkl-devel) \
+          cat $(python tools/get_file_in_pkg LICENSE.txt --pkg mkl-devel) \
               >>"${{ github.workspace }}/patches/LICENSE_MKL.txt"
 
           # Add .so -> .so.2 symlinks to fix linking for mkl-service.

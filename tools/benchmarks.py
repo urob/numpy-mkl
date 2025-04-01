@@ -4,22 +4,27 @@ import sys
 from pathlib import Path
 from timeit import Timer
 
-import scipy
-
 import numpy as np
 
 parser = argparse.ArgumentParser(description='Run NumPy and SciPy benchmarks')
 parser.add_argument('--self-tune', action='store_true', help='Tune the benchmark sizes')
 parser.add_argument('-o', '--out-file', help='Output file for the results')
+parser.add_argument('--no-scipy', action='store_true', help='Skip SciPy benchmarks')
 
 args = parser.parse_args()
 out_file = Path(args.out_file) if args.out_file else None
+
+if not args.no_scipy:
+    import scipy
 
 fmt = '{name:<10}: {time:.4f}s ({loops:4d} loops)'
 
 
 class Benchmark:
     def run(self, results=None, verbose=True, **kwargs):
+        if hasattr(self, 'requires_scipy') and self.requires_scipy and args.no_scipy:
+            return
+
         lbls = 'sml', 'med', 'lrg'
         for size, loops, lbl in zip(self.size, self.loops, lbls, strict=True):
             best = self.run_single(size, loops, **kwargs)
@@ -104,6 +109,7 @@ class Inv(Benchmark):
 class LU(Benchmark):
     size = (55, 610, 2584)
     loops = (2_500, 50, 1)
+    requires_scipy = True
 
     def setup(self, k):
         rng = np.random.default_rng(1)

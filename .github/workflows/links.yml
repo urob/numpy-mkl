@@ -2,6 +2,8 @@ name: Link external
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "15 21 * * 0" # 21.15 UTC every Sunday
 
 permissions:
   contents: write

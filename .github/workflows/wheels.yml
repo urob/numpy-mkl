@@ -293,6 +293,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          # Explicitly set ref to include commits from the meta job.
+          # https://github.com/actions/checkout/issues/439#issuecomment-830862188
+          ref: main
           path: main
 
       - uses: actions/checkout@v4

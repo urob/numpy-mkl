@@ -13,7 +13,7 @@ PYPY = 'https://pypi.org/pypi'
 
 # List of maintained Python releases. Update this once a year when a new
 # release is available (usually early October).
-PYTHON_VERSIONS = ('3.9', '3.10', '3.11', '3.12', '3.13')
+PYTHON_VERSIONS = ('3.10', '3.11', '3.12', '3.13')
 
 
 class FetchPackageData:

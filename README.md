@@ -1,24 +1,43 @@
 # numpy-mkl
 
-NumPy and SciPy wheels linked against Intel's high performance
-[oneMLK](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html)
-BLAS and LAPACK libraries for Intel CPUs. The wheels are available from a Python Package
-Index URL for convenient installation with `pip` or `uv`.
+This repository provides NumPy and SciPy wheels linked against Intel's high performance
+[oneMLK](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html) BLAS and LAPACK
+libraries for Intel CPUs.
 
-## Installation
+The wheels have been published to a custom Python Package Index for convenient installation with
+`pip` or `uv`. See below for installation instructions.
 
-```shell
-pip install numpy --extra-index-url https://urob.github.io/numpy-mkl
+## Installation (pip)
+
+```sh
+pip install numpy scipy --extra-index-url https://urob.github.io/numpy-mkl
+```
+
+## Installation (uv)
+
+```sh
+# Run this from project directory
+uv init
+uv add numpy scipy --index https://urob.github.io/numpy-mkl
 ```
 
 ## Alternatives
 
-- The `conda-forge` and `anaconda` conda channels contain comparable NumPy and SciPy
-  builds. The main benefit of this index is that it eliminates the dependence on a conda,
-  allowing to install high performance scientific computing libraries with the convenience
-  of `pip` or `uv`.
-- Intel's [Distribution for
-  Python](https://www.intel.com/content/www/us/en/developer/tools/oneapi/distribution-for-python.html)
-  includes MKL-linked versions for NumPy releases `<= 1.26`.
-- Christoph Golke maintains custom [Windows wheels](https://github.com/cgohlke/numpy-mkl-wheels) for
-  NumPy and SciPy.
+The usual way to obtain MKL-accelerated NumPy and SciPy packages is through
+[Anaconda](https://www.anaconda.com/) or [Conda-forge](https://conda-forge.org/). The purpose of
+this repository is to provide an alternative for users who prefer to use `pip` or `uv` for package
+management. Other alternatives are listed below.
+
+|                                                                                                                                 | MKL | PyPI | Notes                      |
+| ------------------------------------------------------------------------------------------------------------------------------- | --- | ---- | -------------------------- |
+| This repository                                                                                                                 | Yes | Yes  |                            |
+| [Intel(r) Distribution for Python](https://www.intel.com/content/www/us/en/developer/tools/oneapi/distribution-for-python.html) | Yes | Yes  | Does not support NumPy 2.x |
+| [Numpy-mkl-wheels](https://github.com/cgohlke/numpy-mkl-wheels)                                                                 | Yes | No   | No Linux wheels            |
+| [Python Package Index](https://pypi.org/)                                                                                       | No  | Yes  | Slow on Intel CPUs         |
+
+## References
+
+- [Intel(r) oneMKL Release
+  Notes](https://www.intel.com/content/www/us/en/developer/articles/release-notes/onemkl-release-notes.html)
+- [Intel(r) oneAPI Release
+  Notes](https://www.intel.com/content/www/us/en/developer/articles/release-notes/intel-oneapi-toolkit-release-notes.html)

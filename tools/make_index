@@ -2,6 +2,7 @@
 
 import argparse
 import hashlib
+import re
 import time
 from pathlib import Path
 
@@ -19,23 +20,10 @@ PACKAGE = """<!DOCTYPE html>
 </html>
 """
 
-PACKAGE_URL = '<a href="{baseurl}{name}#sha256={sha256}" download="{name}">{name}</a>{pad}{size}   {timestamp}'
-
-parser = argparse.ArgumentParser(description='Create a custom Python package index')
-
-parser.add_argument('wheelhouse', type=str, help='path where wheels are stored')
-parser.add_argument(
-    '-p', '--package', required=True, type=str, help='name of the package'
+PACKAGE_URL = (
+    '<a href="{baseurl}{name}#sha256={sha256}" download="{name}">{name}</a>'
+    '{pad}   {size}   {timestamp}'
 )
-
-args = parser.parse_args()
-wheelhouse = Path(args.wheelhouse)
-indexfile = wheelhouse / 'index.html'
-
-
-wheels = sorted([p for p in wheelhouse.iterdir() if p.suffix in {'.whl', '.tar.gz'}])
-names = [w.name for w in wheels]
-width = len(max(names, key=len)) + 3
 
 
 class Wheel:
@@ -66,12 +54,49 @@ class Wheel:
         return f'{mb:4,.1f} MB'
 
     def timestamp(self):
+        if self.name in old_wheels and self.sha256 == old_wheels[self.name]['sha256']:
+            print(f'No change in {self.name}, applying old timestamp')
+            return old_wheels[self.name]['timestamp']
+
         return time.strftime(
             '%d-%b-%Y',
             time.gmtime(self.path.stat().st_mtime),
         )
 
 
-index = PACKAGE.replace('%LINKS%', '\n'.join([str(Wheel(w)) for w in wheels]))
-index = index.replace('%PACKAGE%', args.package)
-indexfile.write_text(index)
+class Parse:
+    def __init__(self, path):
+        # Remove duplicate {name} groups.
+        self.pattern = re.sub(r'{name}', r'.*?', PACKAGE_URL, count=2)
+
+        lines = path.read_text().splitlines() if path.exists() else []
+        parsed = [self.parse(l) for l in lines if l.startswith('<a href="')]
+        self.wheels = {w['name']: w for w in parsed}
+
+    def parse(self, line):
+        regex = re.sub(r'{(.+?)}', r'(?P<\1>.*)', self.pattern)
+        return re.match(regex, line).groupdict()
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Create a custom Python package index')
+
+    parser.add_argument('wheelhouse', type=str, help='path where wheels are stored')
+    parser.add_argument('-p', '--package', type=str, help='name of the package')
+
+    args = parser.parse_args()
+    wheelhouse = Path(args.wheelhouse).resolve()
+    indexfile = wheelhouse / 'index.html'
+    package = args.package if args.package else wheelhouse.name
+
+    wheels = sorted(
+        [p for p in wheelhouse.iterdir() if p.suffix in {'.whl', '.tar.gz'}]
+    )
+    names = [w.name for w in wheels]
+    width = len(max(names, key=len))  # Global: used in Wheel.__str__.
+
+    old_wheels = Parse(indexfile).wheels  # Global: used in Wheel.timestamp.
+
+    index = PACKAGE.replace('%LINKS%', '\n'.join(str(Wheel(w)) for w in wheels))
+    index = index.replace('%PACKAGE%', package)
+    indexfile.write_text(index)

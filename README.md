@@ -1,24 +1,30 @@
 # numpy-mkl
 
-This repository provides NumPy and SciPy wheels linked against Intel's high performance
-[oneMLK](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html) BLAS and LAPACK
-libraries for Intel CPUs.
+This repository provides binary wheels for NumPy and SciPy, linked to Intel's high-performance
+[oneAPI Math Kernel
+Library](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html) for Intel CPUs.
+The wheels are accessible through a custom Python Package Index (PyPI) and can be installed with
+`pip` or `uv`.
 
-The wheels have been published to a custom Python Package Index for convenient installation with
-`pip` or `uv`. See below for installation instructions.
+## Installation
 
-## Installation (pip)
+MKL-accelerated wheels are available for 64-bit versions of Linux and Windows. Non-supported
+platforms are automatically redirected to PyPI for compatibility on cross-platform projects. There
+are no prerequisites apart from `pip` or `uv`; all dependencies are automatically installed by the
+package manager.
 
-```sh
-pip install numpy scipy --extra-index-url https://urob.github.io/numpy-mkl
-```
-
-## Installation (uv)
+**uv**
 
 ```sh
 # Run this from project directory
 uv init
 uv add numpy scipy --index https://urob.github.io/numpy-mkl
+```
+
+**pip**
+
+```sh
+pip install numpy scipy --extra-index-url https://urob.github.io/numpy-mkl
 ```
 
 ## Alternatives
@@ -34,6 +40,12 @@ management. Other alternatives are listed below.
 | [Intel(r) Distribution for Python](https://www.intel.com/content/www/us/en/developer/tools/oneapi/distribution-for-python.html) | Yes | Yes  | Does not support NumPy 2.x |
 | [Numpy-mkl-wheels](https://github.com/cgohlke/numpy-mkl-wheels)                                                                 | Yes | No   | No Linux wheels            |
 | [Python Package Index](https://pypi.org/)                                                                                       | No  | Yes  | Slow on Intel CPUs         |
+
+## Technical details
+
+Linux wheels are built with `gcc` on Ubuntu 22.04. Windows wheels are built with `msvc` (numpy) and
+`mingw-w64` (scipy) on Windows Server 2019. These compilers have shown the most consistent
+performance in benchmarks against `icx` and `icc`.
 
 ## References
 

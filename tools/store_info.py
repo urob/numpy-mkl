@@ -16,7 +16,7 @@ class Build:
         else:
             self.info = json.loads(info.read_text())
 
-        self.name = self.info['name']
+        self.name = self.info['name'].replace('-', '_')
         self.version = self.info['version']
         self.python = self.info['python']
         self.os = self.info['os'].lower()

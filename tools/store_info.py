@@ -14,7 +14,7 @@ class Build:
         if isinstance(info, dict):
             self.info = info
         else:
-            self.info = json.loads(info.read_text(encoding='UTF-8'))
+            self.info = json.loads(info.read_text())
 
         self.name = self.info['name']
         self.version = self.info['version']
@@ -36,7 +36,7 @@ class Build:
 def fetch_store(path):
     if isinstance(path, str):
         path = Path(path)
-    return json.loads(path.read_text(encoding='UTF-8')) if path.exists() else {}
+    return json.loads(path.read_text()) if path.exists() else {}
 
 
 def main(storepath, builds):
@@ -44,7 +44,7 @@ def main(storepath, builds):
     for b in builds:
         Build(b).merge_with(store)
 
-    with storepath.open('w', encoding='UTF-8') as f:
+    with storepath.open('w') as f:
         json.dump(store, f, indent=2, sort_keys=True)
 
 

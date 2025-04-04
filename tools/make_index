@@ -2,22 +2,30 @@
 
 import argparse
 import hashlib
+import json
 import re
 import time
 from pathlib import Path
 
-PACKAGE = """<!DOCTYPE html>
+TEMPLATE = """<!DOCTYPE html>
 <html>
   <head>
-    <title>Links for %PACKAGE%</title>
+    <title>Links for %NAME%</title>
   </head>
   <body>
-    <h1>Links for %PACKAGE%</h1>
+    <h1>Links for %NAME%</h1>
     <pre>
 %LINKS%
     </pre>
+%EXTERNAL%
   </body>
 </html>
+"""
+
+EXTERNAL = """    <h2>PyPI redirects</h2>
+    <pre>
+%LINKS%
+    </pre>
 """
 
 PACKAGE_URL = (
@@ -64,18 +72,20 @@ class Wheel:
         )
 
 
-class Parse:
+class ParseIndex:
     def __init__(self, path):
-        # Remove duplicate {name} groups.
-        self.pattern = re.sub(r'{name}', r'.*?', PACKAGE_URL, count=2)
+        self.wheels = dict(self.parse(path))
+
+    def parse(self, path):
+        # Remove duplicate {name} groups from PACKAGE_URL and convert to regex string.
+        pattern = re.sub(r'{name}', r'.*?', PACKAGE_URL, count=2)
+        regex = re.sub(r'{(.+?)}', r'(?P<\1>.*)', pattern)
 
         lines = path.read_text().splitlines() if path.exists() else []
-        parsed = [self.parse(l) for l in lines if l.startswith('<a href="')]
-        self.wheels = {w['name']: w for w in parsed}
-
-    def parse(self, line):
-        regex = re.sub(r'{(.+?)}', r'(?P<\1>.*)', self.pattern)
-        return re.match(regex, line).groupdict()
+        for line in lines:
+            match = re.match(regex, line)
+            if match:
+                yield match['name'], match.groupdict()
 
 
 if __name__ == '__main__':
@@ -83,6 +93,9 @@ if __name__ == '__main__':
 
     parser.add_argument('wheelhouse', type=str, help='path where wheels are stored')
     parser.add_argument('-p', '--package', type=str, help='name of the package')
+    parser.add_argument(
+        '-x', '--extra-pypi-wheels', type=str, help='path to json with PyPI wheels'
+    )
 
     args = parser.parse_args()
     wheelhouse = Path(args.wheelhouse).resolve()
@@ -95,8 +108,17 @@ if __name__ == '__main__':
     names = [w.name for w in wheels]
     width = len(max(names, key=len))  # Global: used in Wheel.__str__.
 
-    old_wheels = Parse(indexfile).wheels  # Global: used in Wheel.timestamp.
+    old_wheels = ParseIndex(indexfile).wheels  # Global: used in Wheel.timestamp.
 
-    index = PACKAGE.replace('%LINKS%', '\n'.join(str(Wheel(w)) for w in wheels))
-    index = index.replace('%PACKAGE%', package)
+    index = TEMPLATE.replace('%LINKS%', '\n'.join(str(Wheel(w)) for w in wheels))
+    index = index.replace('%NAME%', package)
+
+    path = Path(args.extra_pypi_wheels) if args.extra_pypi_wheels else None
+    external = json.loads(path.read_text()).values() if path and path.exists() else None
+    if external:
+        EXTERNAL = EXTERNAL.replace('%LINKS%', '\n'.join(external))
+        index = index.replace('%EXTERNAL%', EXTERNAL)
+    else:
+        index = index.replace('%EXTERNAL%', '')
+
     indexfile.write_text(index)

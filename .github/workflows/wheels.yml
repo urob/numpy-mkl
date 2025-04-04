@@ -43,11 +43,26 @@ jobs:
 
       - name: Fetch build matrix
         run: |
-          ${{ inputs.force-build }} && extra_args="-force-build"
+          ${{ inputs.force-build }} && extra_args="--force-build"
           MATRIX="$(uv run tools/fetch_matrix ${{ inputs.name }} ${extra_args} \
             --store build.json --runs-on ubuntu-22.04 --runs-on windows-2019)"
           echo "MATRIX=${MATRIX}" >>$GITHUB_ENV
           echo "${MATRIX}" | yq -P -o yaml
+
+      - name: Fetch unsupported wheels from PyPI
+        run: |
+          uv run tools/fetch_unsupported ${{ inputs.name }} \
+            --store build.json --version ${{ env.VERSION }} --output pypi.json
+        if: ${{ env.matrix != 'null' }}
+
+      - name: Upload unsupported
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.name }}-pypi
+          path: |
+            pypi.json
+          retention-days: 1
+        if: ${{ env.matrix != 'null' }}
 
   build:
     if: ${{ needs.meta.outputs.matrix != 'null' }}
@@ -313,14 +328,16 @@ jobs:
           path: wheelhouse/${{ inputs.name }}
           merge-multiple: true
 
+      - name: Update index
+        run: |
+          main/tools/make_index wheelhouse/${{ inputs.name}}/ --package ${{ inputs.name }} \
+            --extra-pypi-wheels wheelhouse/${{ inputs.name}}/pypi.json
+          rm wheelhouse/${{ inputs.name }}/pypi.json
+
       - name: Update build data
         run: |
           main/tools/store_info.py wheelhouse/${{ inputs.name }}/*.json --store main/build.json
           rm wheelhouse/${{ inputs.name }}/*.json
-
-      - name: Update index
-        run: |
-          main/tools/make_index wheelhouse/${{ inputs.name}}/ --package ${{ inputs.name }}
 
       - name: Commit wheels
         working-directory: wheelhouse
@@ -344,7 +361,7 @@ jobs:
           fi
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add .
+          git add build.json
           git commit -m "ci: Store info for ${{ inputs.name }}-${{ needs.meta.outputs.version }}"
           git push origin HEAD:main
 

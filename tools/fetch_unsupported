@@ -1,0 +1,84 @@
+#!/usr/bin/env python
+
+import argparse
+import json
+import re
+from pathlib import Path
+
+import requests
+
+REQUESTS_TIMEOUT = 45
+BASEURL = 'https://pypi.org/simple'
+
+PLATFORMS = ['macosx', 'aarch64', 'win32', 'musllinux']
+
+
+class FetchPyPIWheels:
+    def __init__(self, package_name, versions):
+        self._packages = [f'{package_name.replace("-", "_")}-{v}' for v in versions]
+        self._pypi_index = self.get_pypi_index(package_name)
+        self.wheels = dict(self.get_wheels_for_platform())
+
+    def get_pypi_index(self, package_name):
+        url = f'{BASEURL}/{package_name}'
+        response = requests.get(url, timeout=REQUESTS_TIMEOUT)
+        if response.status_code == 200:
+            return response.text
+
+        if response.status_code == 404:
+            raise FetchPackageDataError(f'Not found {package_name}')
+
+        raise FetchPackageDataError('Failed to retrieve simple index from PyPI.')
+
+    def get_wheels_for_platform(self):
+        lines = self._pypi_index.splitlines()
+        for line in lines:
+            parsed = self.parse_line(line)
+            if parsed:
+                yield parsed
+
+    def parse_line(self, line):
+        if self.anymatch(self._packages, line) and self.anymatch(PLATFORMS, line):
+            match = re.search(r'<a href=.+>(.+\.whl)</a>', line)
+            if match:
+                return match[1], match[0]
+
+    @staticmethod
+    def anymatch(items, line):
+        return any(_ in line for _ in items)
+
+
+class FetchPackageDataError(Exception):
+    pass
+
+
+class FetchStoreVersions:
+    def __init__(self, package_name, extra_version, store):
+        self._package_name = package_name.replace('-', '_')
+        self._storepath = store
+
+        self.versions = self.get_store_versions() if store else []
+        if extra_version:
+            self.versions += [extra_version]
+
+    def get_store_versions(self):
+        path = Path(self._storepath)
+        builds = list(json.loads(path.read_text())) if path.exists() else []
+        return [*{s.split('-')[1] for s in builds if s.startswith(self._package_name)}]
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Fetch unsupported builds')
+    parser.add_argument('name', type=str, help='package name')
+    parser.add_argument('-s', '--store', type=str, help='path to build store')
+    parser.add_argument('-v', '--version', type=str, help='package version')
+    parser.add_argument('-o', '--output', type=str, help='output file')
+
+    args = parser.parse_args()
+    versions = FetchStoreVersions(args.name, args.version, args.store).versions
+
+    print(f'Adding external index links for versions: {", ".join(versions)}')
+
+    fetcher = FetchPyPIWheels(args.name, versions)
+    with Path(args.output).open('w') as f:
+        json.dump(fetcher.wheels, f, indent=2, sort_keys=True)

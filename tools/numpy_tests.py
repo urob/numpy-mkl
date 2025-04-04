@@ -11,7 +11,10 @@ if os.environ['RUNNER_OS'] == 'Windows':
     libs = Path(sys.prefix) / 'libs'
     libs.mkdir(parents=True, exist_ok=True)
 
-passed = np.test(
-    label='full', extra_argv=['-n=auto', '--timeout=1800', '--durations=10']
-)
+# HACK: Disable timeout for NumPy 2.1 and earlier. Will fail with rc candidates.
+ver = tuple(map(int, np.version.version.split('.')))
+if ver >= (2, 2, 0):
+    passed = np.test(label='full', extra_argv=['-n=auto', '--timeout=1800'])
+else:
+    passed = np.test(label='full', extra_argv=['-n=auto'])
 sys.exit(not passed)

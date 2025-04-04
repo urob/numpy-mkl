@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 with contextlib.suppress(ImportError):
-    import semver
+    from packaging.version import Version
 
 
 class Build:
@@ -25,8 +25,8 @@ class Build:
         self.key = '-'.join([self.name, self.version, self.python, self.os])
 
     def exclude(self, store):
-        return (
-            self.key in store and semver.compare(self.mkl, store[self.key]['mkl']) <= 0
+        return self.key in store and Version(self.mkl) <= Version(
+            store[self.key]['mkl']
         )
 
     def merge_with(self, store):

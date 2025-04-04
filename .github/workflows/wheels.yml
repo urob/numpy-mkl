@@ -37,7 +37,7 @@ jobs:
             **/pyproject.toml
             **/uv.lock
 
-      - name: Fetch latest release
+      - name: Fetch package version
         run: |
           echo "VERSION=$(uv run tools/fetch_matrix ${{ inputs.name }})" >>$GITHUB_ENV
 
@@ -49,13 +49,13 @@ jobs:
           echo "MATRIX=${MATRIX}" >>$GITHUB_ENV
           echo "${MATRIX}" | yq -P -o yaml
 
-      - name: Fetch unsupported wheels from PyPI
+      - name: Fetch other platforms from PyPI
         run: |
           uv run tools/fetch_unsupported ${{ inputs.name }} \
             --store build.json --version ${{ env.VERSION }} --output pypi.json
         if: ${{ env.matrix != 'null' }}
 
-      - name: Upload unsupported
+      - name: Upload other platforms
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.name }}-pypi
@@ -134,7 +134,7 @@ jobs:
               --pkg mkl-devel --parent)" >>$GITHUB_ENV
 
           # Fetch MKL license.
-          cat $(python tools/get_file_in_pkg LICENSE.txt --pkg mkl-devel) \
+          cat "$(python tools/get_file_in_pkg LICENSE.txt --pkg mkl-devel)" \
               >>"${{ github.workspace }}/patches/LICENSE_MKL.txt"
 
           # Add .so -> .so.2 symlinks to fix linking for mkl-service.
@@ -189,7 +189,6 @@ jobs:
           esac
         if: runner.os == 'windows'
 
-      # TODO: add link time optimization flags once everything is working (-Db_lto)
       - name: Build wheel
         working-directory: ${{ env.SRC_DIR }}
         run: |
@@ -263,11 +262,13 @@ jobs:
               uv pip install threadpoolctl
               python tools/numpy_tests.py
               ;;
+
             scipy)
               uv pip install -r "${{ env.SRC_DIR }}"/requirements/test.txt \
                   --index https://urob.github.io/numpy-mkl
               python -c 'import sys; import scipy; sys.exit(not scipy.test())'
               ;;
+
             mkl-service)
               uv pip install pytest
               pytest -vv --pyargs mkl
@@ -333,11 +334,15 @@ jobs:
         run: |
           main/tools/make_index wheelhouse/${{ inputs.name}}/ --package ${{ inputs.name }} \
             --extra-pypi-wheels wheelhouse/${{ inputs.name}}/pypi.json
+
+          # Remove the pypi.json file so it's not picked up by store_info below.
           rm wheelhouse/${{ inputs.name }}/pypi.json
 
       - name: Update build data
         run: |
           main/tools/store_info.py wheelhouse/${{ inputs.name }}/*.json --store main/build.json
+
+          # Remove json files so they don't get committed.
           rm wheelhouse/${{ inputs.name }}/*.json
 
       - name: Commit wheels

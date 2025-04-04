@@ -16,17 +16,16 @@ TEMPLATE = """<!DOCTYPE html>
     <h1>Links for %NAME%</h1>
     <pre>
 %LINKS%
-    </pre>
-%EXTERNAL%
+    </pre>%REDIRECTS%
   </body>
 </html>
 """
 
-EXTERNAL = """    <h2>PyPI redirects</h2>
+REDIRECTS = """
+    <h2>PyPI redirects</h2>
     <pre>
 %LINKS%
-    </pre>
-"""
+    </pre>"""
 
 PACKAGE_URL = (
     '<a href="{baseurl}{name}#sha256={sha256}" download="{name}">{name}</a>'
@@ -113,12 +112,13 @@ if __name__ == '__main__':
     index = TEMPLATE.replace('%LINKS%', '\n'.join(str(Wheel(w)) for w in wheels))
     index = index.replace('%NAME%', package)
 
-    path = Path(args.extra_pypi_wheels) if args.extra_pypi_wheels else None
-    external = json.loads(path.read_text()).values() if path and path.exists() else None
-    if external:
-        EXTERNAL = EXTERNAL.replace('%LINKS%', '\n'.join(external))
-        index = index.replace('%EXTERNAL%', EXTERNAL)
+    # Redirect other platforms to PyPI.
+    p = Path(args.extra_pypi_wheels) if args.extra_pypi_wheels else None
+    pypi_links = json.loads(p.read_text()).values() if p and p.exists() else None
+    if pypi_links:
+        REDIRECTS = REDIRECTS.replace('%LINKS%', '\n'.join(pypi_links))
+        index = index.replace('%REDIRECTS%', REDIRECTS)
     else:
-        index = index.replace('%EXTERNAL%', '')
+        index = index.replace('%REDIRECTS%', '')
 
     indexfile.write_text(index)

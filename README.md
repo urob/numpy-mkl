@@ -44,8 +44,9 @@ management. Other alternatives are listed below.
 ## Technical details
 
 Linux wheels are built with `gcc` on Ubuntu 22.04. Windows wheels are built with `msvc` (numpy) and
-`mingw-w64` (scipy) on Windows Server 2019. These compilers have shown the most consistent
-performance in benchmarks against `icx` and `icc`.
+`mingw-w64` (scipy) on Windows Server 2019. These compilers showed the most consistent runtime
+performance in a series of [benchmarks](benchmarks/benchmarks.py), even in comparison to
+`icx`-compiled wheels.
 
 ## References
 

@@ -15,6 +15,10 @@ on:
         required: false
         type: boolean
         description: "Force build even if wheels exist"
+      version:
+        required: false
+        type: string
+        description: "Version to build (default: latest release)"
 
 jobs:
   meta:
@@ -39,7 +43,12 @@ jobs:
 
       - name: Fetch package version
         run: |
-          echo "VERSION=$(uv run tools/fetch_matrix ${{ inputs.name }})" >>$GITHUB_ENV
+          if [[ -z "${{ inputs.version }}" ]]; then
+            VERSION="$(uv run tools/fetch_matrix ${{ inputs.name }})"
+          else
+            VERSION="${{ inputs.version }}"
+          fi
+          echo "VERSION=${VERSION}" >>$GITHUB_ENV
 
       - name: Fetch build matrix
         run: |

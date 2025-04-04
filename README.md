@@ -18,7 +18,7 @@ package manager.
 ```sh
 # Run this from project directory
 uv init
-uv add numpy scipy --index https://urob.github.io/numpy-mkl
+uv add numpy scipy mkl-service --index https://urob.github.io/numpy-mkl
 ```
 
 **pip**

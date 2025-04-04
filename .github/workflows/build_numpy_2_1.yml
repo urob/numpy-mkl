@@ -1,0 +1,16 @@
+name: Build numpy-2.1
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  numpy:
+    uses: ./.github/workflows/wheels.yml
+    with:
+      name: numpy
+      repo: numpy/numpy
+      force-build: true
+      version: 2.1.3

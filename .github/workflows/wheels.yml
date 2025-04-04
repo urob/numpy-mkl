@@ -226,8 +226,9 @@ jobs:
       - name: Repair wheel (Linux)
         run: |
           mkdir -p wheelhouse
+          plat="$(ldd --version | head -1 | awk '{ print $NF }' | tr '.' '_')_$(uname -m)"
           uvx auditwheel repair "${{ env.SRC_DIR }}"/dist/*.whl -w wheelhouse \
-              --exclude 'libmkl*' --plat manylinux_2_35_x86_64
+              --exclude 'libmkl*' --plat=manylinux_${plat}
 
           # Set runpath to location of MKL libraries.
           if [[ "${{ inputs.name }}" == "mkl-service" ]]; then

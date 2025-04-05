@@ -16,21 +16,10 @@ TEMPLATE = """<!DOCTYPE html>
     <h1>Links for %NAME%</h1>
     <pre>
 %LINKS%
-    </pre>%REDIRECTS%
+    </pre>
   </body>
 </html>
 """
-
-REDIRECTS = """
-    <h2>PyPI redirects</h2>
-    <pre>
-%LINKS%
-    </pre>"""
-
-PACKAGE_URL = (
-    '<a href="{baseurl}{name}#sha256={sha256}" download="{name}">{name}</a>'
-    '{pad}   {size}   {timestamp}'
-)
 
 
 class Wheel:
@@ -92,9 +81,6 @@ if __name__ == '__main__':
 
     parser.add_argument('wheelhouse', type=str, help='path where wheels are stored')
     parser.add_argument('-p', '--package', type=str, help='name of the package')
-    parser.add_argument(
-        '-x', '--extra-pypi-wheels', type=str, help='path to json with PyPI wheels'
-    )
 
     args = parser.parse_args()
     wheelhouse = Path(args.wheelhouse).resolve()
@@ -111,14 +97,4 @@ if __name__ == '__main__':
 
     index = TEMPLATE.replace('%LINKS%', '\n'.join(str(Wheel(w)) for w in wheels))
     index = index.replace('%NAME%', package)
-
-    # Redirect other platforms to PyPI.
-    p = Path(args.extra_pypi_wheels) if args.extra_pypi_wheels else None
-    pypi_links = json.loads(p.read_text()).values() if p and p.exists() else None
-    if pypi_links:
-        REDIRECTS = REDIRECTS.replace('%LINKS%', '\n'.join(pypi_links))
-        index = index.replace('%REDIRECTS%', REDIRECTS)
-    else:
-        index = index.replace('%REDIRECTS%', '')
-
     indexfile.write_text(index)

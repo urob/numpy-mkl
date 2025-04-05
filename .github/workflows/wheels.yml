@@ -58,21 +58,6 @@ jobs:
           echo "MATRIX=${MATRIX}" >>$GITHUB_ENV
           echo "${MATRIX}" | yq -P -o yaml
 
-      - name: Fetch other platforms from PyPI
-        run: |
-          uv run tools/fetch_unsupported ${{ inputs.name }} \
-            --store build.json --version ${{ env.VERSION }} --output pypi.json
-        if: ${{ env.matrix != 'null' }}
-
-      - name: Upload other platforms
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ inputs.name }}-pypi
-          path: |
-            pypi.json
-          retention-days: 1
-        if: ${{ env.matrix != 'null' }}
-
   build:
     if: ${{ needs.meta.outputs.matrix != 'null' }}
 
@@ -341,17 +326,11 @@ jobs:
 
       - name: Update index
         run: |
-          main/tools/make_index wheelhouse/${{ inputs.name}}/ --package ${{ inputs.name }} \
-            --extra-pypi-wheels wheelhouse/${{ inputs.name}}/pypi.json
-
-          # Remove the pypi.json file so it's not picked up by store_info below.
-          rm wheelhouse/${{ inputs.name }}/pypi.json
+          main/tools/make_index wheelhouse/${{ inputs.name}}/ --package ${{ inputs.name }}
 
       - name: Update build data
         run: |
           main/tools/store_info.py wheelhouse/${{ inputs.name }}/*.json --store main/build.json
-
-          # Remove json files so they don't get committed.
           rm wheelhouse/${{ inputs.name }}/*.json
 
       - name: Commit wheels

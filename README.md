@@ -8,17 +8,16 @@ The wheels are accessible through a custom Python Package Index (PyPI) and can b
 
 ## Installation
 
-MKL-accelerated wheels are available for 64-bit versions of Linux and Windows. Non-supported
-platforms are automatically redirected to PyPI for compatibility on cross-platform projects. There
-are no prerequisites apart from `pip` or `uv`; all dependencies are automatically installed by the
-package manager.
+MKL-accelerated wheels are available for 64-bit versions of Linux and Windows. There are no
+prerequisites apart from `pip` or `uv`; all dependencies are automatically installed by the package
+manager.
 
 **uv**
 
 ```sh
 # Run this from project directory
 uv init
-uv add numpy scipy mkl-service --index https://urob.github.io/numpy-mkl
+uv add numpy scipy --index https://urob.github.io/numpy-mkl
 ```
 
 **pip**

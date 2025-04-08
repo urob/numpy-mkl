@@ -222,16 +222,6 @@ jobs:
           plat="$(ldd --version | head -1 | awk '{ print $NF }' | tr '.' '_')_$(uname -m)"
           uvx auditwheel repair "${{ env.SRC_DIR }}"/dist/*.whl -w wheelhouse \
               --exclude 'libmkl*' --plat=manylinux_${plat}
-
-          # Set runpath to location of MKL libraries.
-          if [[ "${{ inputs.name }}" == "mkl-service" ]]; then
-            uvx wheel unpack wheelhouse/mkl_service*.whl --dest tmp
-            cd tmp/mkl_service*/mkl
-            uvx patchelf --set-rpath '$ORIGIN/../../..:$ORIGIN/../..' _mklinit.*.so
-            uvx patchelf --set-rpath '$ORIGIN/../../..:$ORIGIN/../..' _py_mkl_service.*.so
-            cd ../../..
-            uvx wheel pack tmp/mkl_service*/ --dest wheelhouse
-          fi
         if: runner.os == 'linux'
 
       - name: Repair wheel (Windows)

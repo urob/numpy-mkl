@@ -1,5 +1,5 @@
 diff --git a/mkl/__init__.py b/mkl/__init__.py
-index d2fefc7..08e1dfd 100644
+index d2fefc7..47f35b9 100644
 --- a/mkl/__init__.py
 +++ b/mkl/__init__.py
 @@ -23,7 +23,11 @@
@@ -14,19 +14,24 @@ index d2fefc7..08e1dfd 100644
  
  class RTLD_for_MKL():
      def __init__(self):
-@@ -45,6 +49,15 @@ class RTLD_for_MKL():
-             sys.setdlopenflags(self.saved_rtld)
-             self.saved_rtld = None
- 
+@@ -38,6 +42,20 @@ class RTLD_for_MKL():
+             sys.setdlopenflags(self.saved_rtld | ctypes.RTLD_GLOBAL)
+         except AttributeError:
+             pass
 +
-+# Add MKL library to DLL search path on Windows so they can be linked.
-+with contextlib.suppress(
-+    AttributeError, FileNotFoundError, StopIteration, PackageNotFoundError
-+):
-+    dll = next(p for p in files("mkl") if p.match("*mkl_rt*.dll"))
-+    dll_dir = dll.locate().resolve().parent
-+    os.add_dll_directory(dll_dir)
++        with contextlib.suppress(
++            AttributeError, FileNotFoundError, StopIteration, PackageNotFoundError
++        ):
++            if os.name == "nt":
++                # Add MKL library to DLL search path on Windows.
++                dll = next(p for p in files("mkl") if p.match("*mkl_rt*.dll"))
++                dll_dir = dll.locate().resolve().parent
++                os.add_dll_directory(dll_dir)
++            else:
++                # Preload MKL library on Linux.
++                dll = next(p for p in files("mkl") if p.match("*libmkl_rt.so*"))
++                ctypes.CDLL(dll.locate().resolve(), mode=ctypes.RTLD_GLOBAL)
 +
- with RTLD_for_MKL():
-     from . import _mklinit
+         del ctypes
  
+     def __exit__(self, *args):

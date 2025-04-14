@@ -2,7 +2,6 @@
 
 import argparse
 import hashlib
-import json
 import re
 import time
 from pathlib import Path
@@ -20,6 +19,11 @@ TEMPLATE = """<!DOCTYPE html>
   </body>
 </html>
 """
+
+PACKAGE_URL = (
+    '<a href="{baseurl}{name}#sha256={sha256}" download="{name}">{name}</a>'
+    '{pad}   {size}   {timestamp}'
+)
 
 
 class Wheel:

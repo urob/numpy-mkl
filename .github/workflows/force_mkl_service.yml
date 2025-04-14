@@ -1,0 +1,16 @@
+name: Rebuild mkl-service
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  numpy:
+    uses: ./.github/workflows/wheels.yml
+    with:
+      name: mkl-service
+      repo: IntelPython/mkl-service
+      force-build: true
+      # version: 2.1.3

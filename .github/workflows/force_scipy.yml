@@ -1,0 +1,16 @@
+name: Rebuild scipy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  numpy:
+    uses: ./.github/workflows/wheels.yml
+    with:
+      name: scipy
+      repo: scipy/scipy
+      force-build: true
+      # version: 2.1.3

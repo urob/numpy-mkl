@@ -7,7 +7,7 @@ permissions:
   contents: write
 
 jobs:
-  numpy:
+  scipy:
     uses: ./.github/workflows/wheels.yml
     with:
       name: scipy

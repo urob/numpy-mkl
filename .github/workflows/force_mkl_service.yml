@@ -7,7 +7,7 @@ permissions:
   contents: write
 
 jobs:
-  numpy:
+  mkl-service:
     uses: ./.github/workflows/wheels.yml
     with:
       name: mkl-service

@@ -75,9 +75,8 @@ class ParseIndex:
 
         lines = path.read_text().splitlines() if path.exists() else []
         for line in lines:
-            match = re.match(regex, line)
-            if match:
-                yield match['name'], match.groupdict()
+          if m := re.match(regex, line):
+                yield m['name'], m.groupdict()
 
 
 if __name__ == '__main__':

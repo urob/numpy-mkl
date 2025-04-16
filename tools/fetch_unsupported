@@ -39,9 +39,8 @@ class FetchPyPIWheels:
 
     def parse_line(self, line):
         if self.anymatch(self._packages, line) and self.anymatch(PLATFORMS, line):
-            match = re.search(r'<a href=.+>(.+\.whl)</a>', line)
-            if match:
-                return match[1], match[0]
+            if m := re.search(r'<a href=.+>(.+\.whl)</a>', line):
+                return m[1], m[0]
 
     @staticmethod
     def anymatch(items, line):

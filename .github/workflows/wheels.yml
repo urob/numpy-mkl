@@ -132,15 +132,18 @@ jobs:
               >>"${{ github.workspace }}/patches/LICENSE_MKL.txt"
 
           # Add .so -> .so.2 symlinks to fix linking for mkl-service.
-          cd "${{ env.MKL_DIR }}"/lib
-          for i in $( ls libmkl*.so.2 ); do ln -s $i ${i%.*}; done
+          if [[ "${{ runner.os }}" == "Linux" ]]; then
+            cd "${{ env.MKL_DIR }}"/lib
+            for i in $( ls libmkl*.so.2 ); do ln -s $i ${i%.*}; done
+          fi
 
       - name: Add MKL to runtime dependencies
         working-directory: ${{ env.SRC_DIR }}
         run: |
           # Pin runtime library to the exact version used for compiling.
           if [[ "${{ inputs.name }}" == "mkl-service" ]]; then
-            sed -i "s/install_requires=\[\]/install_requires=['mkl==${MKL_VERSION}']/" setup.py
+            # MKLROOT must be set, even with --no-sync.
+            MKLROOT= uv add --no-sync mkl=="${MKL_VERSION}"
           else
             uv add --no-sync mkl=="${MKL_VERSION}" mkl-service
           fi
@@ -255,7 +258,7 @@ jobs:
 
             mkl-service)
               uv pip install pytest
-              pytest -vv --pyargs mkl
+              pytest -s -v --pyargs mkl
               ;;
           esac
 

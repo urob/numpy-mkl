@@ -1,0 +1,13 @@
+diff --git a/pyproject.toml b/pyproject.toml
+index 5ec86b8..759b6e9 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -68,7 +68,7 @@ Homepage = "http://github.com/IntelPython/mkl-service"
+ 
+ [tool.setuptools]
+ include-package-data = true
+-packages = ["mkl"]
++packages = ["mkl", "mkl.tests"]
+ 
+ [tool.setuptools.dynamic]
+ version = {attr = "mkl._version.__version__"}

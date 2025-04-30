@@ -71,6 +71,9 @@ jobs:
 
     runs-on: ${{ matrix.runs-on }}
 
+    container:
+      ${{ matrix.runs-on == 'ubuntu-22.04' && 'quay.io/pypa/manylinux_2_28_x86_64' || null }}
+
     continue-on-error: true
 
     defaults:

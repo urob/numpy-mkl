@@ -15,6 +15,10 @@ on:
         required: false
         type: boolean
         description: "Force build even if wheels exist"
+      manylinux:
+        required: false
+        type: boolean
+        description: "Build Linux wheels in manylinux container"
       version:
         required: false
         type: string
@@ -52,9 +56,10 @@ jobs:
 
       - name: Fetch build matrix
         run: |
-          ${{ inputs.force-build }} && extra_args="--force-build"
-          MATRIX="$(uv run tools/fetch_matrix ${{ inputs.name }} ${extra_args} \
-            --store build.json --runs-on ubuntu-22.04 --runs-on windows-2019)"
+          fetch_args="--store build.json --runs-on ubuntu-22.04"
+          ${{ inputs.manylinux }} || fetch_args="${fetch_args} --runs-on windows-2019"
+          ${{ inputs.force-build }} && fetch_args="${fetch_args} --force-build"
+          MATRIX="$(uv run tools/fetch_matrix ${{ inputs.name }} ${fetch_args})"
           echo "MATRIX=${MATRIX}" >>$GITHUB_ENV
           echo "${MATRIX}" | yq -P -o yaml
 
@@ -72,7 +77,7 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
 
     container:
-      ${{ matrix.runs-on == 'ubuntu-22.04' && 'quay.io/pypa/manylinux_2_28_x86_64' || null }}
+      ${{ fromJSON(inputs.manylinux) && 'quay.io/pypa/manylinux_2_28_x86_64' || null }}
 
     continue-on-error: true
 
@@ -186,16 +191,14 @@ jobs:
           esac
         if: runner.os == 'windows'
 
-      - name: Install Linux build dependencies
+      - name: Install manylinux build dependencies
         run: |
-          # Use fall-through operator ';&' to match all cases.
           case "${{ inputs.name }}" in
             mkl-service)
-              # Manylinux 2.28 doesn't come with clang.
               dnf -y install clang
               ;&
           esac
-        if: runner.os == 'linux'
+        if: inputs.manylinux
 
       - name: Build wheel
         working-directory: ${{ env.SRC_DIR }}

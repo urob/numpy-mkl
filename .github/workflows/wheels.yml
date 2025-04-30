@@ -15,6 +15,10 @@ on:
         required: false
         type: boolean
         description: "Force build even if wheels exist"
+      manylinux:
+        required: false
+        type: boolean
+        description: "Build Linux wheels in manylinux container"
       version:
         required: false
         type: string
@@ -52,9 +56,10 @@ jobs:
 
       - name: Fetch build matrix
         run: |
-          ${{ inputs.force-build }} && extra_args="--force-build"
-          MATRIX="$(uv run tools/fetch_matrix ${{ inputs.name }} ${extra_args} \
-            --store build.json --runs-on ubuntu-22.04 --runs-on windows-2019)"
+          fetch_args="--store build.json --runs-on ubuntu-22.04"
+          ${{ inputs.manylinux }} || fetch_args="${fetch_args} --runs-on windows-2019"
+          ${{ inputs.force-build }} && fetch_args="${fetch_args} --force-build"
+          MATRIX="$(uv run tools/fetch_matrix ${{ inputs.name }} ${fetch_args})"
           echo "MATRIX=${MATRIX}" >>$GITHUB_ENV
           echo "${MATRIX}" | yq -P -o yaml
 
@@ -70,6 +75,9 @@ jobs:
     needs: meta
 
     runs-on: ${{ matrix.runs-on }}
+
+    container:
+      ${{ fromJSON(inputs.manylinux) && 'quay.io/pypa/manylinux_2_28_x86_64' || null }}
 
     continue-on-error: true
 
@@ -102,10 +110,10 @@ jobs:
           # Move src to avoid pyproject conflicts. SRC_DIR is set relative to GITHUB_WORKSPACE to
           # preserve the "D:\" prefix on Windows. (Pure Linux paths aren't supported as arguments
           # to 'working-directory'.)
-          mv src ../../ && echo "SRC_DIR=${{ github.workspace }}/../../src" >>$GITHUB_ENV
+          mv src ../../ && echo "SRC_DIR=${GITHUB_WORKSPACE}/../../src" >>$GITHUB_ENV
 
           # Keep MKL directory short as it ends up in the final build.
-          echo "MKL_DIR=$(realpath "${{ github.workspace }}"/../../mkl)" >>$GITHUB_ENV
+          echo "MKL_DIR=$(realpath "${GITHUB_WORKSPACE}"/../../mkl)" >>$GITHUB_ENV
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
@@ -129,7 +137,7 @@ jobs:
 
           # Fetch MKL license.
           cat "$(python tools/get_file_in_pkg LICENSE.txt --pkg mkl-devel)" \
-              >>"${{ github.workspace }}/patches/LICENSE_MKL.txt"
+              >>"${GITHUB_WORKSPACE}/patches/LICENSE_MKL.txt"
 
           # Add .so -> .so.2 symlinks to fix linking for mkl-service.
           if [[ "${{ runner.os }}" == "Linux" ]]; then
@@ -155,18 +163,18 @@ jobs:
           echo "----" >>LICENSE.txt
           echo "" >>LICENSE.txt
           cat LICENSES_bundled.txt >>LICENSE.txt
-          cat "${{ github.workspace }}/patches/LICENSE_MKL.txt" >>LICENSE.txt
+          cat "${GITHUB_WORKSPACE}/patches/LICENSE_MKL.txt" >>LICENSE.txt
         if: inputs.name != 'mkl-service'
 
       - name: Apply patches
         run: |
           # Apply patches.
           cd "${{ env.SRC_DIR }}"
-          git apply "${{ github.workspace }}"/patches/${{ inputs.name }}/*.patch
+          git apply "${GITHUB_WORKSPACE}"/patches/${{ inputs.name }}/*.patch
 
           # Fix MKL pkg-config on Windows.
           if [[ "${{ runner.os }}" == "Windows" ]]; then
-            cp "${{ github.workspace }}"/patches/mkl/*.pc "${PKG_CONFIG_PATH}/"
+            cp "${GITHUB_WORKSPACE}"/patches/mkl/*.pc "${PKG_CONFIG_PATH}/"
           fi
 
       - name: Install Windows build dependencies
@@ -185,6 +193,15 @@ jobs:
               ;&
           esac
         if: runner.os == 'windows'
+
+      - name: Install manylinux build dependencies
+        run: |
+          case "${{ inputs.name }}" in
+            mkl-service)
+              dnf -y install clang
+              ;&
+          esac
+        if: inputs.manylinux
 
       - name: Build wheel
         working-directory: ${{ env.SRC_DIR }}

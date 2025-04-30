@@ -1,0 +1,34 @@
+name: Build manylinux wheels
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  mkl-service:
+    uses: ./.github/workflows/wheels.yml
+    with:
+      name: mkl-service
+      repo: IntelPython/mkl-service
+      force-build: true
+      manylinux: true
+
+  numpy:
+    uses: ./.github/workflows/wheels.yml
+    with:
+      name: numpy
+      repo: numpy/numpy
+      force-build: true
+      manylinux: true
+    needs: mkl-service
+
+  scipy:
+    uses: ./.github/workflows/wheels.yml
+    with:
+      name: scipy
+      repo: scipy/scipy
+      force-build: true
+      manylinux: true
+    needs: [mkl-service, numpy]

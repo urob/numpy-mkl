@@ -186,6 +186,17 @@ jobs:
           esac
         if: runner.os == 'windows'
 
+      - name: Install Linux build dependencies
+        run: |
+          # Use fall-through operator ';&' to match all cases.
+          case "${{ inputs.name }}" in
+            mkl-service)
+              # Manylinux 2.28 doesn't come with clang.
+              dnf -y install clang
+              ;&
+          esac
+        if: runner.os == 'linux'
+
       - name: Build wheel
         working-directory: ${{ env.SRC_DIR }}
         run: |

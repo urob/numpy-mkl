@@ -1,19 +1,21 @@
 diff --git a/mkl/__init__.py b/mkl/__init__.py
-index 4a86a64..1ebe93a 100644
+index 635b707..1ebe93a 100644
 --- a/mkl/__init__.py
 +++ b/mkl/__init__.py
-@@ -23,7 +23,10 @@
+@@ -23,9 +23,10 @@
  # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  
 +import contextlib
 +import os
  import sys
+-
+-from . import _init_helper
 +from importlib.metadata import PackageNotFoundError, files
  
  
  class RTLD_for_MKL:
-@@ -41,6 +44,21 @@ class RTLD_for_MKL:
+@@ -43,6 +44,21 @@ class RTLD_for_MKL:
              sys.setdlopenflags(self.saved_rtld | ctypes.RTLD_GLOBAL)
          except AttributeError:
              pass
@@ -35,3 +37,9 @@ index 4a86a64..1ebe93a 100644
          del ctypes
  
      def __exit__(self, *args):
+@@ -59,5 +75,3 @@ del sys
+ 
+ from ._py_mkl_service import *
+ from ._version import __version__
+-
+-del _init_helper

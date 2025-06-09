@@ -57,7 +57,7 @@ jobs:
       - name: Fetch build matrix
         run: |
           fetch_args="--store build.json --runs-on ubuntu-22.04"
-          ${{ inputs.manylinux }} || fetch_args="${fetch_args} --runs-on windows-2019"
+          ${{ inputs.manylinux }} || fetch_args="${fetch_args} --runs-on windows-2022"
           ${{ inputs.force-build }} && fetch_args="${fetch_args} --force-build"
           MATRIX="$(uv run tools/fetch_matrix ${{ inputs.name }} ${fetch_args})"
           echo "MATRIX=${MATRIX}" >>$GITHUB_ENV

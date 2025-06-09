@@ -14,3 +14,4 @@ jobs:
       repo: numpy/numpy
       force-build: true
       # version: 2.1.3
+      manylinux: true

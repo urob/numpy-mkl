@@ -3,7 +3,7 @@ index 25b0eed7..76152e93 100644
 --- a/numpy/_distributor_init.py
 +++ b/numpy/_distributor_init.py
 @@ -13,3 +13,14 @@
-     from . import _distributor_init_local
+     from . import _distributor_init_local  # noqa: F401
  except ImportError:
      pass
 +

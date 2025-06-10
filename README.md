@@ -30,6 +30,40 @@ uv add numpy scipy --index https://urob.github.io/numpy-mkl
 pip install numpy scipy --extra-index-url https://urob.github.io/numpy-mkl
 ```
 
+## Cross-platform collaborations
+
+MKL is only available on `x86-64` architectures, excluding macOS systems. When using `uv`, one can
+use [platform markers](https://peps.python.org/pep-0508/#environment-markers) to automatically
+install MKL-linked versions of NumPy and SciPy when on a compatible system, and otherwise fall back
+to the default versions from PyPI.
+
+Below is a simple illustration, which falls back to the PyPI packages on macOS.[^1] To
+install the environment, copy the following snippet into `pyproject.toml` and then run `uv sync`.
+This will install a virtual environment in `.venv`, which can be activated on the command line or
+via most Python editors.
+
+```toml
+[project]
+name = "example-project"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "numpy>=2.2.6",
+    "scipy>=1.15.2",
+    "mkl-service>=2.4.2; sys_platform != 'darwin'",
+]
+
+[tool.uv.sources]
+numpy = [{ index = "numpy-mkl", marker = "sys_platform != 'darwin'" }]
+scipy = [{ index = "numpy-mkl", marker = "sys_platform != 'darwin'" }]
+mkl-service = [{ index = "numpy-mkl", marker = "sys_platform != 'darwin'" }]
+
+[[tool.uv.index]]
+name = "numpy-mkl"
+url = "https://urob.github.io/numpy-mkl"
+explicit = true
+```
+
 ## Alternatives
 
 The usual way to obtain MKL-accelerated NumPy and SciPy packages is through
@@ -57,3 +91,8 @@ performance in a series of [benchmarks](benchmarks/benchmarks.py), even in compa
   Notes](https://www.intel.com/content/www/us/en/developer/articles/release-notes/onemkl-release-notes.html)
 - [Intel(r) oneAPI Release
   Notes](https://www.intel.com/content/www/us/en/developer/articles/release-notes/intel-oneapi-toolkit-release-notes.html)
+
+
+[^1]: More sophisticated checks can be added by combining with the `platform_machine` marker. In
+    practices, distinguishing between macOS and other systems seems to be good enough for most use
+    cases.

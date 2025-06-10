@@ -85,6 +85,11 @@ Linux wheels are built with `gcc` on Ubuntu 22.04. Windows wheels are built with
 performance in a series of [benchmarks](benchmarks/benchmarks.py), even in comparison to
 `icx`-compiled wheels.
 
+All binaries are dynamically linked against the MKL library. The packages are patched to detect the
+library at runtime as long as `mkl` is installed _anywhere_ accessible by Python. (This is indeed
+the case when using one of the recommended install methods above, which will automatically install
+`mkl` alongside NumPy or SciPy.)
+
 ## References
 
 - [Intel(r) oneMKL Release
@@ -92,7 +97,7 @@ performance in a series of [benchmarks](benchmarks/benchmarks.py), even in compa
 - [Intel(r) oneAPI Release
   Notes](https://www.intel.com/content/www/us/en/developer/articles/release-notes/intel-oneapi-toolkit-release-notes.html)
 
-
-[^1]: More sophisticated checks can be added by combining with the `platform_machine` marker. In
+[^1]:
+    More sophisticated checks can be added by combining with the `platform_machine` marker. In
     practices, distinguishing between macOS and other systems seems to be good enough for most use
     cases.

@@ -343,6 +343,10 @@ jobs:
           main/tools/store_info.py wheelhouse/${{ inputs.name }}/*.json --store main/build.json
           rm wheelhouse/${{ inputs.name }}/*.json
 
+      - name: Update version icons
+        run: |
+          main/tools/update_icons --store main/build.json --readme main/README.md
+
       - name: Commit wheels
         working-directory: wheelhouse
         run: |
@@ -365,7 +369,7 @@ jobs:
           fi
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add build.json
+          git add build.json README.md
           git commit -m "ci: Store info for ${{ inputs.name }}-${{ needs.meta.outputs.version }}"
           git push origin HEAD:main
 

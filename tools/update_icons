@@ -1,0 +1,59 @@
+#!/usr/bin/env python
+
+import argparse
+import json
+from pathlib import Path
+
+ICONS = {
+    'numpy': '[![NumPy](https://img.shields.io/badge/NumPy-{0}-013243)](https://numpy.org/)',
+    'scipy': '[![SciPy](https://img.shields.io/badge/SciPy-{0}-8caae6)](https://scipy.org/)',
+    'mkl_service': '[![mkl-service](https://img.shields.io/badge/mkl--service-{0}-3b5526)](https://github.com/IntelPython/mkl-service)',
+}
+
+
+def fetch_builds(path):
+    if isinstance(path, str):
+        path = Path(path)
+    store = json.loads(path.read_text()) if path.exists() else {}
+    return list(store.keys())
+
+
+def fetch_versions(package, builds):
+    versions = {_.split('-')[1] for _ in builds if _.startswith(package)}
+    formatted = {format_version(_, len(versions)) for _ in versions}
+    return '_%7C_'.join(sorted(formatted))
+
+
+def format_version(v, len_):
+    major, minor, patch = v.split('.')
+    if len_ > 3:
+        return '.'.join((major, minor))
+    if len_ == 1:
+        return 'v' + v
+    return v
+
+
+def make_icon(package, builds):
+    versions = fetch_versions(package, builds)
+    return ICONS[package].format(versions)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Update version icons')
+    parser.add_argument('-s', '--store', required=True, type=str, help='store file')
+    parser.add_argument('-r', '--readme', required=True, type=str, help='readme file')
+
+    args = parser.parse_args()
+    builds = fetch_builds(Path(args.store))
+    readme = Path(args.readme)
+
+    with readme.open() as f:
+        lines = f.readlines()
+
+    for p in ('numpy', 'scipy', 'mkl_service'):
+        for i, l in enumerate(lines):
+            if l.startswith(ICONS[p][:45]):
+                lines[i] = make_icon(p, builds) + '\n'
+
+    with readme.open('w') as f:
+        f.writelines(lines)

@@ -56,8 +56,9 @@ jobs:
 
       - name: Fetch build matrix
         run: |
+          # Keep ubuntu version in sync with container check below.
           fetch_args="--store build.json --runs-on ubuntu-22.04"
-          ${{ inputs.manylinux }} || fetch_args="${fetch_args} --runs-on windows-2022"
+          fetch_args="${fetch_args} --runs-on windows-2022"
           ${{ inputs.force-build }} && fetch_args="${fetch_args} --force-build"
           MATRIX="$(uv run tools/fetch_matrix ${{ inputs.name }} ${fetch_args})"
           echo "MATRIX=${MATRIX}" >>$GITHUB_ENV
@@ -77,7 +78,9 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
 
     container:
-      ${{ fromJSON(inputs.manylinux) && 'quay.io/pypa/manylinux_2_28_x86_64' || null }}
+      # We check matrix.runs-on as runner.os is unset at this stage.
+      ${{ fromJSON(inputs.manylinux) && matrix.runs-on == 'ubuntu-22.04'
+        && 'quay.io/pypa/manylinux_2_28_x86_64' || null }}
 
     continue-on-error: true
 
@@ -200,8 +203,12 @@ jobs:
             mkl-service)
               dnf -y install clang
               ;&
+            numpy)
+              # Tests for distutil require clang (Python < 3.12).
+              [[ "$UV_PYTHON" =~ ^(cp310|cp311)$ ]] && dnf -y install clang || true
+              ;&
           esac
-        if: inputs.manylinux
+        if: (runner.os == 'linux') && inputs.manylinux
 
       - name: Build wheel
         working-directory: ${{ env.SRC_DIR }}

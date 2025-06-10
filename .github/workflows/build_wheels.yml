@@ -14,12 +14,14 @@ jobs:
     with:
       name: mkl-service
       repo: IntelPython/mkl-service
+      manylinux: true
 
   numpy:
     uses: ./.github/workflows/wheels.yml
     with:
       name: numpy
       repo: numpy/numpy
+      manylinux: true
     needs: mkl-service
 
   scipy:
@@ -27,4 +29,5 @@ jobs:
     with:
       name: scipy
       repo: scipy/scipy
+      manylinux: true
     needs: [mkl-service, numpy]

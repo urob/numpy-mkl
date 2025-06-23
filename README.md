@@ -1,8 +1,8 @@
 # numpy-mkl
 
-[![NumPy](https://img.shields.io/badge/NumPy-2.1_%7C_2.2_%7C_2.3-013243)](https://numpy.org/)
-[![SciPy](https://img.shields.io/badge/SciPy-1.15.2_%7C_1.15.3_%7C_1.16.0-8caae6)](https://scipy.org/)
-[![mkl-service](https://img.shields.io/badge/mkl--service-v2.4.2-3b5526)](https://github.com/IntelPython/mkl-service)
+[![NumPy](https://img.shields.io/badge/NumPy-2.1_%7C_2.2_%7C_2.3-013243)](https://urob.github.io/numpy-mkl/numpy/)
+[![SciPy](https://img.shields.io/badge/SciPy-1.15_%7C_1.16-8caae6)](https://urob.github.io/numpy-mkl/scipy/)
+[![mkl-service](https://img.shields.io/badge/mkl--service-2.4-3b5526)](https://urob.github.io/numpy-mkl/mkl-service/)
 
 This repository provides binary wheels for NumPy and SciPy, linked to Intel's high-performance
 [oneAPI Math Kernel

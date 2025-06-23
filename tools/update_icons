@@ -5,9 +5,9 @@ import json
 from pathlib import Path
 
 ICONS = {
-    'numpy': '[![NumPy](https://img.shields.io/badge/NumPy-{0}-013243)](https://numpy.org/)',
-    'scipy': '[![SciPy](https://img.shields.io/badge/SciPy-{0}-8caae6)](https://scipy.org/)',
-    'mkl_service': '[![mkl-service](https://img.shields.io/badge/mkl--service-{0}-3b5526)](https://github.com/IntelPython/mkl-service)',
+    'numpy': '[![NumPy](https://img.shields.io/badge/NumPy-{0}-013243)](https://urob.github.io/numpy-mkl/numpy/)',
+    'scipy': '[![SciPy](https://img.shields.io/badge/SciPy-{0}-8caae6)](https://urob.github.io/numpy-mkl/scipy/)',
+    'mkl_service': '[![mkl-service](https://img.shields.io/badge/mkl--service-{0}-3b5526)](https://urob.github.io/numpy-mkl/mkl-service/)',
 }
 
 
@@ -20,17 +20,13 @@ def fetch_builds(path):
 
 def fetch_versions(package, builds):
     versions = {_.split('-')[1] for _ in builds if _.startswith(package)}
-    formatted = {format_version(_, len(versions)) for _ in versions}
+    formatted = {format_version(_) for _ in versions}
     return '_%7C_'.join(sorted(formatted))
 
 
-def format_version(v, len_):
-    major, minor, patch = v.split('.')
-    if len_ > 3:
-        return '.'.join((major, minor))
-    if len_ == 1:
-        return 'v' + v
-    return v
+def format_version(version):
+    major, minor, patch = version.split('.')
+    return '.'.join((major, minor))
 
 
 def make_icon(package, builds):
@@ -51,9 +47,12 @@ if __name__ == '__main__':
         lines = f.readlines()
 
     for p in ('numpy', 'scipy', 'mkl_service'):
-        for i, l in enumerate(lines):
-            if l.startswith(ICONS[p][:45]):
+        for i, line in enumerate(lines):
+            if line.startswith(ICONS[p][:45]):
                 lines[i] = make_icon(p, builds) + '\n'
+                break
+        else:
+            raise ValueError(f'No icon found for {p}')
 
     with readme.open('w') as f:
         f.writelines(lines)

@@ -24,10 +24,9 @@ class Build:
 
         self.key = '-'.join([self.name, self.version, self.python, self.os])
 
-    def exclude(self, store):
-        return self.key in store and Version(self.mkl) <= Version(
-            store[self.key]['mkl']
-        )
+    def exclude(self, store, check_mkl=False):
+        bump_mkl = check_mkl and Version(self.mkl) > Version(store[self.key]['mkl'])
+        return self.key in store and not bump_mkl
 
     def merge_with(self, store):
         store[self.key] = {'mkl': self.mkl}

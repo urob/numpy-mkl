@@ -154,9 +154,9 @@ jobs:
           # Pin runtime library to the exact version used for compiling.
           if [[ "${{ inputs.name }}" == "mkl-service" ]]; then
             # MKLROOT must be set, even with --no-sync.
-            MKLROOT= uv add --no-sync mkl=="${MKL_VERSION}"
+            MKLROOT="${{ env.MKL_DIR }}" uv add --no-sync mkl>="${{ env.MKL_VERSION }}"
           else
-            uv add --no-sync mkl=="${MKL_VERSION}" mkl-service
+            uv add --no-sync mkl>="${{ env.MKL_VERSION }}" mkl-service
           fi
 
       - name: Add MKL licence

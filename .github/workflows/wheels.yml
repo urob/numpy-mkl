@@ -148,6 +148,17 @@ jobs:
             for i in $( ls libmkl*.so.2 ); do ln -s $i ${i%.*}; done
           fi
 
+      - name: Apply patches
+        run: |
+          # Apply patches.
+          cd "${{ env.SRC_DIR }}"
+          git apply "${GITHUB_WORKSPACE}"/patches/${{ inputs.name }}/*.patch
+
+          # Fix MKL pkg-config on Windows.
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            cp "${GITHUB_WORKSPACE}"/patches/mkl/*.pc "${PKG_CONFIG_PATH}/"
+          fi
+
       - name: Add MKL to runtime dependencies
         working-directory: ${{ env.SRC_DIR }}
         run: |
@@ -168,17 +179,6 @@ jobs:
           cat LICENSES_bundled.txt >>LICENSE.txt
           cat "${GITHUB_WORKSPACE}/patches/LICENSE_MKL.txt" >>LICENSE.txt
         if: inputs.name != 'mkl-service'
-
-      - name: Apply patches
-        run: |
-          # Apply patches.
-          cd "${{ env.SRC_DIR }}"
-          git apply "${GITHUB_WORKSPACE}"/patches/${{ inputs.name }}/*.patch
-
-          # Fix MKL pkg-config on Windows.
-          if [[ "${{ runner.os }}" == "Windows" ]]; then
-            cp "${GITHUB_WORKSPACE}"/patches/mkl/*.pc "${PKG_CONFIG_PATH}/"
-          fi
 
       - name: Install Windows build dependencies
         run: |

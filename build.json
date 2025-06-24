@@ -32,13 +32,25 @@
   "mkl_service-2.5.0-cp310-linux": {
     "mkl": "2025.2.0"
   },
+  "mkl_service-2.5.0-cp310-windows": {
+    "mkl": "2025.2.0"
+  },
   "mkl_service-2.5.0-cp311-linux": {
+    "mkl": "2025.2.0"
+  },
+  "mkl_service-2.5.0-cp311-windows": {
     "mkl": "2025.2.0"
   },
   "mkl_service-2.5.0-cp312-linux": {
     "mkl": "2025.2.0"
   },
+  "mkl_service-2.5.0-cp312-windows": {
+    "mkl": "2025.2.0"
+  },
   "mkl_service-2.5.0-cp313-linux": {
+    "mkl": "2025.2.0"
+  },
+  "mkl_service-2.5.0-cp313-windows": {
     "mkl": "2025.2.0"
   },
   "numpy-2.1.3-cp310-linux": {

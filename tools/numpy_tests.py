@@ -11,6 +11,10 @@ if os.environ['RUNNER_OS'] == 'Windows':
     libs = Path(sys.prefix) / 'libs'
     libs.mkdir(parents=True, exist_ok=True)
 
+# Use same memory when running tests as upstream. This means we'll skip
+# the same tests due to memory limitations.
+os.environ['NPY_AVAILABLE_MEM'] = '4 GB'
+
 # HACK: Disable timeout for NumPy 2.1 and earlier. Will fail with rc candidates.
 ver = tuple(map(int, np.version.version.split('.')))
 if ver >= (2, 2, 0):

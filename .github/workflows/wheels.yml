@@ -34,7 +34,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install uv
         uses: astral-sh/setup-uv@v6
@@ -90,10 +90,10 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Check out src
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: ${{ inputs.repo }}
           ref: v${{ needs.meta.outputs.version }}
@@ -319,14 +319,14 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           # Explicitly set ref to include commits from the meta job.
           # https://github.com/actions/checkout/issues/439#issuecomment-830862188
           ref: main
           path: main
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: wheelhouse
           path: wheelhouse

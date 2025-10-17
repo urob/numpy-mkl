@@ -48,18 +48,21 @@ jobs:
       - name: Fetch package version
         run: |
           if [[ -z "${{ inputs.version }}" ]]; then
-            VERSION="$(uv run tools/fetch_matrix ${{ inputs.name }})"
+            ${{ inputs.name == 'mkl-service' }} && fetch_args="--github"
+            VERSION="$(uv run tools/fetch_matrix ${{ inputs.name }} ${fetch_args})"
           else
             VERSION="${{ inputs.version }}"
           fi
           echo "VERSION=${VERSION}" >>$GITHUB_ENV
 
+      # TODO: Reuse version / respect explicit version overwrites.
       - name: Fetch build matrix
         run: |
           # Keep ubuntu version in sync with container check below.
           fetch_args="--store build.json --runs-on ubuntu-22.04"
           fetch_args="${fetch_args} --runs-on windows-2022"
           ${{ inputs.force-build }} && fetch_args="${fetch_args} --force-build"
+          ${{ inputs.name == 'mkl-service' }} && fetch_args="${fetch_args} --github"
           MATRIX="$(uv run tools/fetch_matrix ${{ inputs.name }} ${fetch_args})"
           echo "MATRIX=${MATRIX}" >>$GITHUB_ENV
           echo "${MATRIX}" | yq -P -o yaml

@@ -3,13 +3,19 @@
 import argparse
 import itertools
 import json
+import re
+import tomllib
 
 import requests
 from packaging.specifiers import SpecifierSet
+from packaging.version import InvalidVersion, Version
 from store_info import Build, fetch_store
 
 REQUESTS_TIMEOUT = 45
-PYPY = 'https://pypi.org/pypi'
+
+PYPY = 'https://pypi.org/pypi/{package}/json'
+GH_RELEASES = 'https://api.github.com/repos/{repo}/releases'
+GH_PYPROJECT = 'https://raw.githubusercontent.com/{repo}/refs/tags/{tag}/pyproject.toml'
 
 # List of maintained Python releases. Update this once a year when a new
 # release is available (usually early October).
@@ -17,19 +23,40 @@ PYTHON_VERSIONS = ('3.10', '3.11', '3.12', '3.13', '3.14')
 
 
 class FetchPackageData:
-    def __init__(self, package_name):
-        self.package_data = self.get_package_data(package_name)['info']
+    def __init__(self, package_name, github=False):
+        if github:
+            repo = self.get_github_repo(package_name)
+            self.package_data = self.get_package_data_github(repo)
+        else:
+            self.package_data = self.get_package_data_pypi(package_name)
 
-    def get_package_data(self, package_name):
-        json_url = f'{PYPY}/{package_name}/json'
-        response = requests.get(json_url, timeout=REQUESTS_TIMEOUT)
-        if response.status_code == 200:
-            return response.json()
+    def get_github_repo(self, package_name):
+        urls = self.get_package_data_pypi(package_name)['project_urls']
+        pattern = '.*github.com/([^/]+/[^/]+)($|/.*)'
+        for url in urls.values():
+            if m := re.match(pattern, url):
+                return m.group(1)
+        raise FetchPackageDataError('Could not detect Github repo')
 
-        if response.status_code == 404:
-            raise FetchPackageDataError(f'Not found {package_name}')
+    def get_package_data_pypi(self, package_name):
+        url = PYPY.format(package=package_name)
+        return self.fetch_dict(url)['info']
 
-        raise FetchPackageDataError('Failed to retrieve version information from PyPI.')
+    def get_package_data_github(self, repo):
+        url = GH_RELEASES.format(repo=repo)
+        releases = self.fetch_dict(url)
+        for r in releases:
+            tag = r['tag_name']
+            try:
+                version = Version(tag).base_version
+            except InvalidVersion:
+                continue
+            if Version(tag).__str__() != version or r['draft'] or r['prerelease']:
+                continue
+            url = GH_PYPROJECT.format(repo=repo, tag=tag)
+            info = self.fetch_dict(url, toml=True)['project']
+            return {'requires_python': info['requires-python'], 'version': version}
+        raise FetchPackageDataError('No public release found')
 
     def get_package_version(self):
         return self.package_data['version']
@@ -39,10 +66,17 @@ class FetchPackageData:
         supported_versions = SpecifierSet(requires_python).filter(PYTHON_VERSIONS)
         return ['cp' + v.replace('.', '') for v in supported_versions]
 
+    @staticmethod
+    def fetch_dict(url, toml=False):
+        response = requests.get(url, timeout=REQUESTS_TIMEOUT)
+        if (rc := response.status_code) != 200:  # noqa: PLR2004
+            raise FetchPackageDataError(f'Download failed with status code {rc}')
+        return tomllib.loads(response.text) if toml else response.json()
+
 
 class FetchBuildMatrix:
-    def __init__(self, package_name, store, runs_on, force_build=False):
-        package_data = FetchPackageData(package_name)
+    def __init__(self, package_name, store, runs_on, force_build=False, github=False):
+        package_data = FetchPackageData(package_name, github=github)
         self.package_name = package_name
         self.package_version = package_data.get_package_version()
         self.python_versions = package_data.get_python_versions()
@@ -100,13 +134,20 @@ if __name__ == '__main__':
         '-r', '--runs-on', action='append', type=str, help='operating systems to run on'
     )
     parser.add_argument('-f', '--force-build', action='store_true', help='force build')
+    parser.add_argument('-g', '--github', action='store_true', help='fetch from Github')
 
     args = parser.parse_args()
 
     if args.runs_on:
         fetcher = FetchBuildMatrix(
-            args.name, args.store, args.runs_on, force_build=args.force_build
+            args.name,
+            args.store,
+            args.runs_on,
+            force_build=args.force_build,
+            github=args.github,
         )
         print(fetcher.get_matrix())
+
     else:
-        print(FetchPackageData(args.name).get_package_version())
+        fetcher = FetchPackageData(args.name, github=args.github)
+        print(fetcher.get_package_version())

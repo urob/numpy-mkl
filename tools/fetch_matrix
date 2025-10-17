@@ -24,22 +24,25 @@ PYTHON_VERSIONS = ('3.10', '3.11', '3.12', '3.13', '3.14')
 
 class FetchPackageData:
     def __init__(self, package_name, github=False):
+        self.package_name = package_name
+        self.github = github
+
         if github:
-            repo = self.get_github_repo(package_name)
+            repo = self.get_github_repo()
             self.package_data = self.get_package_data_github(repo)
         else:
-            self.package_data = self.get_package_data_pypi(package_name)
+            self.package_data = self.get_package_data_pypi()
 
-    def get_github_repo(self, package_name):
-        urls = self.get_package_data_pypi(package_name)['project_urls']
+    def get_github_repo(self):
+        urls = self.get_package_data_pypi()['project_urls']
         pattern = '.*github.com/([^/]+/[^/]+)($|/.*)'
         for url in urls.values():
             if m := re.match(pattern, url):
                 return m.group(1)
         raise FetchPackageDataError('Could not detect Github repo')
 
-    def get_package_data_pypi(self, package_name):
-        url = PYPY.format(package=package_name)
+    def get_package_data_pypi(self):
+        url = PYPY.format(package=self.package_name)
         return self.fetch_dict(url)['info']
 
     def get_package_data_github(self, repo):
@@ -55,7 +58,11 @@ class FetchPackageData:
                 continue
             url = GH_PYPROJECT.format(repo=repo, tag=tag)
             info = self.fetch_dict(url, toml=True)['project']
-            return {'requires_python': info['requires-python'], 'version': version}
+            return {
+                'github_tag': tag,
+                'requires_python': info['requires-python'],
+                'version': version,
+            }
         raise FetchPackageDataError('No public release found')
 
     def get_package_version(self):
@@ -65,6 +72,11 @@ class FetchPackageData:
         requires_python = self.package_data['requires_python']
         supported_versions = SpecifierSet(requires_python).filter(PYTHON_VERSIONS)
         return ['cp' + v.replace('.', '') for v in supported_versions]
+
+    def get_github_tag(self):
+        if self.github:
+            return self.package_data['github_tag']
+        raise ValueError('Cannot fetch Github tag from PyPI')
 
     @staticmethod
     def fetch_dict(url, toml=False):
@@ -134,7 +146,8 @@ if __name__ == '__main__':
         '-r', '--runs-on', action='append', type=str, help='operating systems to run on'
     )
     parser.add_argument('-f', '--force-build', action='store_true', help='force build')
-    parser.add_argument('-g', '--github', action='store_true', help='fetch from Github')
+    parser.add_argument('--github', action='store_true', help='fetch from Github')
+    parser.add_argument('--tag', action='store_true', help='fetch Github tag')
 
     args = parser.parse_args()
 
@@ -147,6 +160,10 @@ if __name__ == '__main__':
             github=args.github,
         )
         print(fetcher.get_matrix())
+
+    elif args.tag:
+        fetcher = FetchPackageData(args.name, github=True)
+        print(fetcher.get_github_tag())
 
     else:
         fetcher = FetchPackageData(args.name, github=args.github)

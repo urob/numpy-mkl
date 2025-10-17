@@ -31,6 +31,7 @@ jobs:
     outputs:
       version: ${{ env.VERSION }}
       matrix: ${{ env.MATRIX }}
+      tag: ${{ env.TAG }}
 
     steps:
       - name: Check out repository
@@ -48,12 +49,17 @@ jobs:
       - name: Fetch package version
         run: |
           if [[ -z "${{ inputs.version }}" ]]; then
-            ${{ inputs.name == 'mkl-service' }} && fetch_args="--github"
-            VERSION="$(uv run tools/fetch_matrix ${{ inputs.name }} ${fetch_args})"
+            if ${{ inputs.name == 'mkl-service' }}; then
+              VERSION="$(uv run tools/fetch_matrix ${{ inputs.name }} --github)"
+              TAG="$(uv run tools/fetch_matrix ${{ inputs.name }} --tag)"
+            else
+              VERSION="$(uv run tools/fetch_matrix ${{ inputs.name }} ${fetch_args})"
+            fi
           else
             VERSION="${{ inputs.version }}"
           fi
           echo "VERSION=${VERSION}" >>$GITHUB_ENV
+          echo "TAG=${TAG:-v${VERSION}}" >>$GITHUB_ENV
 
       # TODO: Reuse version / respect explicit version overwrites.
       - name: Fetch build matrix
@@ -99,7 +105,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: ${{ inputs.repo }}
-          ref: v${{ needs.meta.outputs.version }}
+          ref: ${{ needs.meta.outputs.tag }}
           path: src
           submodules: recursive
 

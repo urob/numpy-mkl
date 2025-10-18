@@ -44,4 +44,5 @@ line-ending = 'lf'
 skip-magic-trailing-comma = false
 
 [tool.uv]
+required-version = "~=0.9"
 package = false

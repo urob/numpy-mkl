@@ -42,3 +42,6 @@ quote-style = 'single'
 indent-style = 'space'
 line-ending = 'lf'
 skip-magic-trailing-comma = false
+
+[tool.uv]
+package = false

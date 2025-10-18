@@ -2,7 +2,7 @@
 name = "numpy-mkl"
 version = "0.1.0"
 
-description = "NumPy wheels with MKL support"
+description = "NumPy and SciPy wheels with MKL support"
 authors = [{name = "Robert Ulbricht"}]
 requires-python = ">=3.11"
 readme = "README.md"

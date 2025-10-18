@@ -27,7 +27,7 @@ on:
 jobs:
   meta:
     runs-on: ubuntu-latest
-
+    if: github.repository == 'urob/numpy-mkl'
     outputs:
       version: ${{ env.VERSION }}
       matrix: ${{ env.MATRIX }}
@@ -74,28 +74,22 @@ jobs:
           echo "${MATRIX}" | yq -P -o yaml
 
   build:
-    if: ${{ needs.meta.outputs.matrix != 'null' }}
-
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.meta.outputs.matrix) }}
-
     name: ${{ inputs.name }}-${{ matrix.python }} (${{ matrix.runs-on }})
-
-    needs: meta
-
     runs-on: ${{ matrix.runs-on }}
-
+    if: ${{ needs.meta.outputs.matrix != 'null' }}
+    needs: meta
+    continue-on-error: true
     container:
       # We check matrix.runs-on as runner.os is unset at this stage.
       ${{ fromJSON(inputs.manylinux) && matrix.runs-on == 'ubuntu-22.04'
         && 'quay.io/pypa/manylinux_2_28_x86_64' || null }}
-
-    continue-on-error: true
-
     defaults:
       run:
         shell: bash
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.meta.outputs.matrix) }}
 
     steps:
       - name: Check out repository

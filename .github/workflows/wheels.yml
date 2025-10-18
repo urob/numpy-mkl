@@ -64,7 +64,6 @@ jobs:
       # TODO: Reuse version / respect explicit version overwrites.
       - name: Fetch build matrix
         run: |
-          # Keep ubuntu version in sync with container check below.
           fetch_args="--store build.json --runs-on ubuntu-22.04"
           fetch_args="${fetch_args} --runs-on windows-2022"
           ${{ inputs.force-build }} && fetch_args="${fetch_args} --force-build"
@@ -78,11 +77,10 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
     if: ${{ needs.meta.outputs.matrix != 'null' }}
     needs: meta
-    continue-on-error: true
     container:
-      # We check matrix.runs-on as runner.os is unset at this stage.
-      ${{ fromJSON(inputs.manylinux) && matrix.runs-on == 'ubuntu-22.04'
+      ${{ fromJSON(inputs.manylinux) && startsWith(matrix.runs-on, 'ubuntu')
         && 'quay.io/pypa/manylinux_2_28_x86_64' || null }}
+    continue-on-error: true
     defaults:
       run:
         shell: bash

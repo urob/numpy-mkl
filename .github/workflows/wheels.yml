@@ -36,6 +36,9 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
 
       - name: Install uv
         uses: astral-sh/setup-uv@3259c6206f993105e3a61b142c2d97bf4b9ef83d # v7.1.0
@@ -92,6 +95,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Check out src
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -100,6 +105,7 @@ jobs:
           ref: ${{ needs.meta.outputs.tag }}
           path: src
           submodules: recursive
+          persist-credentials: false
 
       - name: Prepare environment
         run: |
@@ -327,11 +333,13 @@ jobs:
           # https://github.com/actions/checkout/issues/439#issuecomment-830862188
           ref: main
           path: main
+          persist-credentials: true  # Need credentials to push.
 
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: wheelhouse
           path: wheelhouse
+          persist-credentials: true  # Need credentials to push.
 
       - name: Create directory
         run: |

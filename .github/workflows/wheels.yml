@@ -370,8 +370,8 @@ jobs:
 
       - name: Store build metadata
         run: |
-          main/tools/store_info.py wheelhouse/${{ inputs.name }}/*.json --store main/build.json
-          rm wheelhouse/${{ inputs.name }}/*.json
+          main/tools/store_info.py wheelhouse/*.json --store main/build.json
+          rm wheelhouse/*.json
 
       - name: Update badges
         run: |

@@ -26,8 +26,8 @@ on:
 
 jobs:
   meta:
-    runs-on: ubuntu-latest
     if: github.repository == 'urob/numpy-mkl'
+    runs-on: ubuntu-latest
     outputs:
       version: ${{ env.VERSION }}
       matrix: ${{ env.MATRIX }}
@@ -75,22 +75,22 @@ jobs:
           echo "MATRIX=${MATRIX}" >>$GITHUB_ENV
           echo "${MATRIX}" | yq -P -o yaml
 
+  #-----------------------------------------------------------------------------------------------
   build:
     name: ${{ inputs.name }}-${{ matrix.python }} (${{ matrix.runs-on }})
-    runs-on: ${{ matrix.runs-on }}
     if: ${{ needs.meta.outputs.matrix != 'null' }}
     needs: meta
+    runs-on: ${{ matrix.runs-on }}
     container:
       ${{ fromJSON(inputs.manylinux) && startsWith(matrix.runs-on, 'ubuntu')
         && 'quay.io/pypa/manylinux_2_28_x86_64' || null }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.meta.outputs.matrix) }}
     continue-on-error: true
     defaults:
       run:
         shell: bash
-
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.meta.outputs.matrix) }}
 
     steps:
       - name: Check out repository
@@ -316,13 +316,11 @@ jobs:
             wheelhouse/*.json
           retention-days: 1
 
+  #-----------------------------------------------------------------------------------------------
   release:
     if: ${{ needs.meta.outputs.matrix != 'null' }}
-
     needs: [meta, build]
-
     runs-on: ubuntu-latest
-
     permissions:
       contents: write
 

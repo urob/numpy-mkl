@@ -1,12 +1,10 @@
-## Release Notes
-
 Released on {date}.
 
 ### Latest builds
 
-{builds_latest}
+{latest}
 
-## Usage
+### Usage
 
 Attached below are *newly* built wheels only. Wheels for all packages and all versions can be
 [downloaded here](https://urob.github.io/numpy-mkl/). The [setup

@@ -51,7 +51,7 @@ class Wheel:
     def sha256sum(self):
         digest = self.asset['digest'].split(':')
         if digest[0] != 'sha256':
-            raise ValueError(f'Expected sha256 digest, got {digest[0]}'
+            raise ValueError(f'Expected sha256 digest, got {digest[0]}')
         return digest[1]
 
     def size(self):

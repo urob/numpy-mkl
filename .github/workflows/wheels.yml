@@ -316,7 +316,7 @@ jobs:
             wheelhouse/*.json
           retention-days: 1
 
-  commit:
+  release:
     if: ${{ needs.meta.outputs.matrix != 'null' }}
 
     needs: [meta, build]
@@ -327,7 +327,8 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - name: Checkout main branch
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           # Explicitly set ref to include commits from the meta job.
           # https://github.com/actions/checkout/issues/439#issuecomment-830862188
@@ -335,37 +336,76 @@ jobs:
           path: main
           persist-credentials: true  # Need credentials to push.
 
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - name: Checkout deployment branch
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
-          ref: wheelhouse
-          path: wheelhouse
+          ref: pypi
+          path: pypi
           persist-credentials: true  # Need credentials to push.
 
-      - name: Create directory
-        run: |
-          mkdir -p wheelhouse/${{ inputs.name }}
+      - name: Install uv
+        uses: astral-sh/setup-uv@2ddd2b9cb38ad8efd50337e8ab201519a34c9f24 # v7.1.1
+        with:
+          version-file: "pyproject.toml"
+          enable-cache: true
+          cache-dependency-glob: |
+            **/pyproject.toml
+            **/uv.lock
 
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      # - name: Create directory for wheels
+      #   run: |
+      #     mkdir wheelhouse
+
+      - name: Fetch wheels
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           pattern: ${{ inputs.name }}-*
-          path: wheelhouse/${{ inputs.name }}
+          path: wheelhouse
           merge-multiple: true
 
-      - name: Update index
+      - name: Bump project version
         run: |
-          main/tools/make_index wheelhouse/${{ inputs.name}}/ --package ${{ inputs.name }}
+          uv version --bump patch
+          echo "VERSION=$(uv version --short)" >>$GITHUB_ENV
 
-      - name: Update build data
+      - name: Store build metadata
         run: |
           main/tools/store_info.py wheelhouse/${{ inputs.name }}/*.json --store main/build.json
           rm wheelhouse/${{ inputs.name }}/*.json
 
-      - name: Update version icons
+      - name: Update badges
         run: |
           main/tools/update_icons --store main/build.json --readme main/README.md
 
-      - name: Commit wheels
-        working-directory: wheelhouse
+      - name: Commit release data
+        working-directory: main
+        run: |
+          if [[ -z "$(git status --porcelain)" ]]; then
+              echo "No changes to commit"
+              exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .
+          git commit -m "ci: Prepare release for ${{ inputs.name }}-${{ needs.meta.outputs.version }}"
+          git push origin HEAD:main
+
+      - name: Release wheels
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NOTES=$(uv run main/tools/release_notes --store main/build.json \
+            --template main/templates/release.md)
+          gh release create "${VERSION}" --title "${VERSION}" --notes "${NOTES}" wheelhouse/*
+
+      - name: Generate index
+        run: |
+          # Wait 10s for release to get finished.
+          sleep 10
+          uv run main/tools/make_index2 pypi/${{ inputs.name}}/index.html
+
+      - name: Deploy index
+        working-directory: pypi
         run: |
           if [[ -z "$(git status --porcelain)" ]]; then
               echo "No changes to commit"
@@ -375,20 +415,7 @@ jobs:
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add .
           git commit -m "ci: Add wheels for ${{ inputs.name }}-${{ needs.meta.outputs.version }}"
-          git push origin HEAD:wheelhouse
-
-      - name: Commit build data
-        working-directory: main
-        run: |
-          if [[ -z "$(git status --porcelain)" ]]; then
-              echo "No changes to commit"
-              exit 0
-          fi
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add build.json README.md
-          git commit -m "ci: Store info for ${{ inputs.name }}-${{ needs.meta.outputs.version }}"
-          git push origin HEAD:main
+          git push origin HEAD:pypi
 
 ...
 # vim: set tw=98:

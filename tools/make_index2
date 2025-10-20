@@ -1,0 +1,131 @@
+#!/usr/bin/env python
+
+import argparse
+import re
+from datetime import datetime
+from pathlib import Path
+
+import requests
+
+REQUESTS_TIMEOUT = 45
+
+TEMPLATE = """<!DOCTYPE html>
+<html>
+  <head>
+    <title>Links for %NAME%</title>
+  </head>
+  <body>
+    <h1>Links for %NAME%</h1>
+    <pre>
+%LINKS%
+    </pre>
+  </body>
+</html>
+"""
+
+PACKAGE_URL = (
+    '<a href="{url}#sha256={sha256}" download="{name}">{name}</a>'
+    '{pad}   {size}   {timestamp}'
+)
+
+
+class Wheel:
+    def __init__(self, asset):
+        self.asset = asset
+        self.name = asset['name']
+        self.url = asset['browser_download_url']
+        self.size = self.size()
+        self.sha256 = self.sha256sum()
+        self.timestamp = self.timestamp()
+
+    def __str__(self):
+        return PACKAGE_URL.format(
+            url=self.url,
+            name=self.name,
+            sha256=self.sha256,
+            size=self.size,
+            timestamp=self.timestamp,
+            pad=' ' * (width - len(self.name)),
+        )
+
+    def sha256sum(self):
+        digest = self.asset['digest'].split(':')
+        if digest[0] != 'sha256':
+            raise ValueError(f'Expected sha256 digest, got {digest[0]}')
+        return digest[1]
+
+    def size(self):
+        mb = self.asset['size'] / 1024**2
+        return f'{mb:4,.1f} MB'
+
+    def timestamp(self):
+        if self.name in old_wheels and self.sha256 == old_wheels[self.name]['sha256']:
+            print(f'No change in {self.name}, applying old timestamp')
+            return old_wheels[self.name]['timestamp']
+
+        created = datetime.fromisoformat(self.asset['created_at'])
+        return created.strftime('%d-%b-%Y')
+
+
+class ParseIndex:
+    def __init__(self, path):
+        self.wheels = dict(self.parse(path))
+
+    def parse(self, path):
+        # Remove duplicate {name} groups from PACKAGE_URL and convert to regex string.
+        pattern = re.sub(r'{name}', r'.*?', PACKAGE_URL, count=1)
+        regex = re.sub(r'{(.+?)}', r'(?P<\1>.*)', pattern)
+
+        lines = path.read_text().splitlines() if path.exists() else []
+        for line in lines:
+            if m := re.match(regex, line):
+                yield m['name'], m.groupdict()
+
+
+class Wheels:
+    def __init__(self, package):
+        self.package = package.replace('-', '_')
+        self.url = 'https://api.github.com/repos/urob/numpy-mkl/releases'
+
+    def fetch_releases(self):
+        response = requests.get(self.url, timeout=REQUESTS_TIMEOUT)
+        if (rc := response.status_code) != 200:  # noqa: PLR2004
+            raise FetchReleaseDataError(f'Download failed with status code {rc}')
+        return response.json()
+
+    def get_wheels(self):
+        wheels = []
+        for release in self.fetch_releases():
+            assets = release['assets']
+            filtered = [
+                a
+                for a in assets
+                if a['name'].startswith(self.package) and a['name'].endswith('.whl')
+            ]
+            wheels += [Wheel(a) for a in filtered]
+        return sorted(wheels, key=lambda w: w.name)
+
+
+class FetchReleaseDataError(Exception):
+    pass
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Create a custom Python package index')
+
+    parser.add_argument('indexfile', type=str, help='path to index')
+    parser.add_argument('-p', '--package', type=str, help='name of the package')
+
+    args = parser.parse_args()
+    indexfile = Path(args.indexfile).resolve()
+    package = args.package if args.package else indexfile.parent.name
+
+    old_wheels = ParseIndex(indexfile).wheels  # Global: used in Wheel.timestamp.
+
+    wheels = Wheels(package).get_wheels()
+    names = [w.name for w in wheels]
+    width = len(max(names, key=len))  # Global: used in Wheel.__str__.
+
+    index = TEMPLATE.replace('%LINKS%', '\n'.join(str(w) for w in wheels))
+    index = index.replace('%NAME%', package)
+    indexfile.write_text(index)

@@ -1,0 +1,48 @@
+#!/usr/bin/env python
+
+import argparse
+import json
+import time
+from pathlib import Path
+
+from packaging.version import Version
+
+PACKAGES = ('numpy', 'scipy', 'mkl_service')
+
+ICONS = {
+    'numpy': '[![NumPy](https://img.shields.io/badge/NumPy-{0}-013243)](https://urob.github.io/numpy-mkl/numpy/)',
+    'scipy': '[![SciPy](https://img.shields.io/badge/SciPy-{0}-8caae6)](https://urob.github.io/numpy-mkl/scipy/)',
+    'mkl_service': '[![mkl-service](https://img.shields.io/badge/mkl--service-{0}-3b5526)](https://urob.github.io/numpy-mkl/mkl-service/)',
+}
+
+
+def fetch_builds(path):
+    if isinstance(path, str):
+        path = Path(path)
+    store = json.loads(path.read_text()) if path.exists() else {}
+    return list(store.keys())
+
+
+def fetch_latest_build(package, builds):
+    versions = [_.split('-')[1] for _ in builds if _.startswith(package)]
+    return max(Version(_) for _ in versions)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Update version icons')
+    parser.add_argument('-s', '--store', required=True, type=str, help='store file')
+    parser.add_argument(
+        '-t', '--template', required=True, type=str, help='template file'
+    )
+
+    args = parser.parse_args()
+    builds = fetch_builds(Path(args.store))
+    template = Path(args.template).read_text()
+
+    latest = ''
+    for p in PACKAGES:
+        latest_ = fetch_latest_build(p, builds)
+        latest += f'- {p}: `{latest_}`\n'
+
+    notes = template.format(date=time.strftime('%Y-%m-%d'), latest=latest)
+    print(notes)

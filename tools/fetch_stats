@@ -1,15 +1,11 @@
 #!/usr/bin/env python
 
-import argparse
-import re
-from datetime import datetime
-from pathlib import Path
-
 import requests
 
 REQUESTS_TIMEOUT = 45
 
 PACKAGES = ('numpy', 'scipy', 'mkl-service')
+
 
 class Wheel:
     def __init__(self, asset):
@@ -17,6 +13,7 @@ class Wheel:
         os = 'windows' if platform.startswith('win') else 'linux'
         self.wheel = (package, os, version, py_version)
         self.downloads = asset['download_count']
+
 
 class Assets:
     def __init__(self):
@@ -47,4 +44,3 @@ if __name__ == '__main__':
     for s, d in stats.items():
         print(f'{s[0]:<12} {s[1]:<7} {s[2]:<6} {s[3]:<7}  {d}')
     print(f'total: {sum(stats.values())}')
-

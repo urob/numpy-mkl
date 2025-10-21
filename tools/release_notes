@@ -9,12 +9,6 @@ from packaging.version import Version
 
 PACKAGES = ('numpy', 'scipy', 'mkl_service')
 
-ICONS = {
-    'numpy': '[![NumPy](https://img.shields.io/badge/NumPy-{0}-013243)](https://urob.github.io/numpy-mkl/numpy/)',
-    'scipy': '[![SciPy](https://img.shields.io/badge/SciPy-{0}-8caae6)](https://urob.github.io/numpy-mkl/scipy/)',
-    'mkl_service': '[![mkl-service](https://img.shields.io/badge/mkl--service-{0}-3b5526)](https://urob.github.io/numpy-mkl/mkl-service/)',
-}
-
 
 def fetch_builds(path):
     if isinstance(path, str):
@@ -31,11 +25,9 @@ def fetch_latest_build(package, builds):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Update version icons')
+    parser = argparse.ArgumentParser(description='Create release notes from template')
+    parser.add_argument('template', type=str, help='template file')
     parser.add_argument('-s', '--store', required=True, type=str, help='store file')
-    parser.add_argument(
-        '-t', '--template', required=True, type=str, help='template file'
-    )
 
     args = parser.parse_args()
     builds = fetch_builds(Path(args.store))

@@ -381,7 +381,7 @@ jobs:
 
       - name: Update badges
         run: |
-          main/tools/update_icons --store main/build.json --readme main/README.md
+          main/tools/update_icons main/README.md --store main/build.json
 
       - name: Commit release data
         working-directory: main
@@ -399,7 +399,7 @@ jobs:
       - name: Write release notes
         working-directory: main
         run: |
-          uv run tools/release_notes --store build.json --template templates/release.md >../release.md
+          uv run tools/release_notes templates/release.md --store build.json >../release.md
 
       - name: Release wheels
         working-directory: main

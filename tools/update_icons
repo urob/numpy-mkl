@@ -36,14 +36,14 @@ def make_icon(package, builds):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Update version icons')
+    parser.add_argument('file', type=str, help='file containing badges')
     parser.add_argument('-s', '--store', required=True, type=str, help='store file')
-    parser.add_argument('-r', '--readme', required=True, type=str, help='readme file')
 
     args = parser.parse_args()
+    file = Path(args.file)
     builds = fetch_builds(Path(args.store))
-    readme = Path(args.readme)
 
-    with readme.open() as f:
+    with file.open() as f:
         lines = f.readlines()
 
     for p in ('numpy', 'scipy', 'mkl_service'):
@@ -54,5 +54,5 @@ if __name__ == '__main__':
         else:
             raise ValueError(f'No icon found for {p}')
 
-    with readme.open('w') as f:
+    with file.open('w') as f:
         f.writelines(lines)

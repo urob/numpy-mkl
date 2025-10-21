@@ -399,14 +399,14 @@ jobs:
       - name: Write release notes
         working-directory: main
         run: |
-          NOTES=$(uv run tools/release_notes --store build.json --template templates/release.md)
-          echo "NOTES=${NOTES}" >>$GITHUB_ENV
+          uv run tools/release_notes --store build.json --template templates/release.md >../release.md
 
       - name: Release wheels
+        working-directory: main
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${VERSION}" --title "${VERSION}" --notes "${NOTES}" wheelhouse/*
+          gh release create "${VERSION}" --title "${VERSION}" --notes-file ../release.md ../wheelhouse/*
 
       - name: Generate index
         working-directory: main

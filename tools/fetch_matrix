@@ -23,13 +23,13 @@ PYTHON_VERSIONS = ('3.10', '3.11', '3.12', '3.13', '3.14')
 
 
 class FetchPackageData:
-    def __init__(self, package_name, github=False):
+    def __init__(self, package_name, github=False, token=None):
         self.package_name = package_name
         self.github = github
 
         if github:
             repo = self.get_github_repo()
-            self.package_data = self.get_package_data_github(repo)
+            self.package_data = self.get_package_data_github(repo, token=token)
         else:
             self.package_data = self.get_package_data_pypi()
 
@@ -45,9 +45,9 @@ class FetchPackageData:
         url = PYPY.format(package=self.package_name)
         return self.fetch_dict(url)['info']
 
-    def get_package_data_github(self, repo):
+    def get_package_data_github(self, repo, token=None):
         url = GH_RELEASES.format(repo=repo)
-        releases = self.fetch_dict(url)
+        releases = self.fetch_dict(url, gh_headers=True, token=token)
         for r in releases:
             tag = r['tag_name']
             try:
@@ -78,17 +78,30 @@ class FetchPackageData:
             return self.package_data['github_tag']
         raise ValueError('Cannot fetch Github tag from PyPI')
 
-    @staticmethod
-    def fetch_dict(url, toml=False):
-        response = requests.get(url, timeout=REQUESTS_TIMEOUT)
+    def fetch_dict(self, url, toml=False, gh_headers=False, token=None):
+        headers = self.headers(token=token) if gh_headers else {}
+        response = requests.get(url, timeout=REQUESTS_TIMEOUT, headers=headers)
         if (rc := response.status_code) != 200:  # noqa: PLR2004
             raise FetchPackageDataError(f'Download failed with status code {rc}')
         return tomllib.loads(response.text) if toml else response.json()
 
+    @staticmethod
+    def headers(token=None):
+        headers = {
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+            'User-Agent': 'numpy-mkl',
+        }
+        if token:
+            headers['Authorization'] = f'Bearer {token}'
+        return headers
+
 
 class FetchBuildMatrix:
-    def __init__(self, package_name, store, runs_on, force_build=False, github=False):
-        package_data = FetchPackageData(package_name, github=github)
+    def __init__(
+        self, package_name, store, runs_on, force_build=False, github=False, token=None
+    ):
+        package_data = FetchPackageData(package_name, github=github, token=token)
         self.package_name = package_name
         self.package_version = package_data.get_package_version()
         self.python_versions = package_data.get_python_versions()
@@ -148,6 +161,7 @@ if __name__ == '__main__':
     parser.add_argument('-f', '--force-build', action='store_true', help='force build')
     parser.add_argument('--github', action='store_true', help='fetch from Github')
     parser.add_argument('--tag', action='store_true', help='fetch Github tag')
+    parser.add_argument('--token', type=str, help='github_token for authentication')
 
     args = parser.parse_args()
 
@@ -158,13 +172,14 @@ if __name__ == '__main__':
             args.runs_on,
             force_build=args.force_build,
             github=args.github,
+            token=args.token,
         )
         print(fetcher.get_matrix())
 
     elif args.tag:
-        fetcher = FetchPackageData(args.name, github=True)
+        fetcher = FetchPackageData(args.name, github=True, token=args.token)
         print(fetcher.get_github_tag())
 
     else:
-        fetcher = FetchPackageData(args.name, github=args.github)
+        fetcher = FetchPackageData(args.name, github=args.github, token=args.token)
         print(fetcher.get_package_version())

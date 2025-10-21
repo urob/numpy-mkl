@@ -25,6 +25,8 @@ def fetch_builds(path):
 
 def fetch_latest_build(package, builds):
     versions = [_.split('-')[1] for _ in builds if _.startswith(package)]
+    if not versions:
+        return 'n/a'
     return max(Version(_) for _ in versions)
 
 

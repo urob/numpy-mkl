@@ -1,0 +1,50 @@
+#!/usr/bin/env python
+
+import argparse
+import re
+from datetime import datetime
+from pathlib import Path
+
+import requests
+
+REQUESTS_TIMEOUT = 45
+
+PACKAGES = ('numpy', 'scipy', 'mkl-service')
+
+class Wheel:
+    def __init__(self, asset):
+        package, version, py_version, _, platform = asset['name'].split('-')
+        os = 'windows' if platform.startswith('win') else 'linux'
+        self.wheel = (package, os, version, py_version)
+        self.downloads = asset['download_count']
+
+class Assets:
+    def __init__(self):
+        self.url = 'https://api.github.com/repos/urob/numpy-mkl/releases'
+
+    def fetch_releases(self):
+        response = requests.get(self.url, timeout=REQUESTS_TIMEOUT)
+        if (rc := response.status_code) != 200:  # noqa: PLR2004
+            raise FetchReleaseDataError(f'Download failed with status code {rc}')
+        return response.json()
+
+    def fetch_stats(self):
+        stats = {}
+        for release in self.fetch_releases():
+            wheels = (Wheel(a) for a in release['assets'])
+            for wheel in wheels:
+                if wheel.downloads > 0:
+                    stats[wheel.wheel] = wheel.downloads + stats.get(wheel.wheel, 0)
+        return dict(sorted(stats.items()))
+
+
+class FetchReleaseDataError(Exception):
+    pass
+
+
+if __name__ == '__main__':
+    stats = Assets().fetch_stats()
+    for s, d in stats.items():
+        print(f'{s[0]:<12} {s[1]:<7} {s[2]:<6} {s[3]:<7}  {d}')
+    print(f'total: {sum(stats.values())}')
+

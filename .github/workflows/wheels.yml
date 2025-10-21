@@ -215,6 +215,11 @@ jobs:
               # Tests for distutil require clang (Python < 3.12).
               [[ "$UV_PYTHON" =~ ^(cp310|cp311)$ ]] && dnf -y install clang || true
               ;&
+            # scipy)
+            #   # Test dependency gmpy2 hasn't released pre-build wheels for py314, building
+            #   # from scratch requires libmpc-devel.
+            #   [[ "$UV_PYTHON" =~ ^(cp314)$ ]] && dnf -y install libmpc-devel || true
+            #   ;&
           esac
         if: (runner.os == 'linux') && inputs.manylinux
 
@@ -283,8 +288,10 @@ jobs:
               ;;
 
             scipy)
-              uv pip install -r "${{ env.SRC_DIR }}"/requirements/test.txt \
-                  --index https://urob.github.io/numpy-mkl
+              # Only install essential test dependencies, mirroring official wheel builder.
+              uv pip install pytest pytest-xdist threadpoolctl pooch hypothesis
+              # uv pip install -r "${{ env.SRC_DIR }}"/requirements/test.txt \
+              #     --index https://urob.github.io/numpy-mkl
               python -c 'import sys; import scipy; sys.exit(not scipy.test())'
               ;;
 

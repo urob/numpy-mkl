@@ -344,7 +344,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@2ddd2b9cb38ad8efd50337e8ab201519a34c9f24 # v7.1.1
         with:
-          version-file: "pyproject.toml"
+          version-file: "main/pyproject.toml"
           enable-cache: true
           cache-dependency-glob: |
             **/pyproject.toml
@@ -362,6 +362,7 @@ jobs:
           merge-multiple: true
 
       - name: Bump project version
+        working-directory: main
         run: |
           uv version --bump patch
           echo "VERSION=$(uv version --short)" >>$GITHUB_ENV
@@ -388,19 +389,24 @@ jobs:
           git commit -m "ci: Prepare release for ${{ inputs.name }}-${{ needs.meta.outputs.version }}"
           git push origin HEAD:main
 
+      - name: Write release notes
+        working-directory: main
+        run: |
+          NOTES=$(uv run tools/release_notes --store build.json --template templates/release.md)
+          echo "NOTES=${NOTES}" >>$GITHUB_ENV
+
       - name: Release wheels
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          NOTES=$(uv run main/tools/release_notes --store main/build.json \
-            --template main/templates/release.md)
           gh release create "${VERSION}" --title "${VERSION}" --notes "${NOTES}" wheelhouse/*
 
       - name: Generate index
+        working-directory: main
         run: |
           # Wait 10s for release to get finished.
           sleep 10
-          uv run main/tools/make_index2 pypi/${{ inputs.name}}/index.html
+          uv run tools/make_index2 ../pypi/${{ inputs.name}}/index.html
 
       - name: Deploy index
         working-directory: pypi

@@ -1,4 +1,4 @@
-name: Link external
+name: Link external dependencies
 
 on:
   workflow_dispatch:
@@ -20,16 +20,16 @@ jobs:
 
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
-          ref: wheelhouse
-          path: wheelhouse
+          ref: pypi
+          path: pypi
           persist-credentials: true  # Need credentials to push.
 
       - name: Update external links
         run: |
-          main/tools/link_pypi wheelhouse/
+          main/tools/link_pypi pypi/
 
       - name: Commit index
-        working-directory: wheelhouse
+        working-directory: pypi
         run: |
           if [[ -z "$(git status --porcelain)" ]]; then
               echo "No changes to commit"
@@ -39,4 +39,4 @@ jobs:
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add .
           git commit -m "ci: Update external links"
-          git push origin HEAD:wheelhouse
+          git push origin HEAD:pypi

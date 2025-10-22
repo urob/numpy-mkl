@@ -1,0 +1,202 @@
+#!/usr/bin/env python
+
+import argparse
+import json
+import tomllib
+from pathlib import Path
+
+import requests
+import yaml
+from packaging.specifiers import SpecifierSet
+from packaging.version import InvalidVersion, Version
+from store_info import Build, fetch_store
+
+REQUESTS_TIMEOUT = 45
+
+RELEASES = 'https://api.github.com/repos/{repo}/releases'
+PYPROJECT = 'https://raw.githubusercontent.com/{repo}/refs/tags/{tag}/pyproject.toml'
+REPO = {
+    'numpy': 'numpy/numpy',
+    'scipy': 'scipy/scipy',
+    'mkl-service': 'IntelPython/mkl-service',
+}
+
+
+def fetch_dict(url, token=None, toml=False):
+    headers_ = headers(url, token=token)
+    response = requests.get(url, timeout=REQUESTS_TIMEOUT, headers=headers_)
+    if (rc := response.status_code) != 200:  # noqa: PLR2004
+        raise FetchPackageDataError(f'Download failed with status code {rc}')
+    return tomllib.loads(response.text) if toml else response.json()
+
+
+def headers(url, token=None):
+    if 'pypi.org' in url:
+        return {'Accept': 'application/json'}
+
+    if 'api.github.com' not in url:
+        return {}
+
+    headers_ = {
+        'Accept': 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        'User-Agent': 'numpy-mkl',
+    }
+    if token:
+        headers_['Authorization'] = f'Bearer {token}'
+    return headers_
+
+
+class Config:
+    def __init__(self, package_name, config_file):
+        self.package_name = package_name
+        with config_file.open() as f:
+            self.config = yaml.safe_load(f)
+
+        self.runners = self.parse_config('runners')
+        self.version = self.parse_config('version')
+        self.python_versions = self.parse_config('python_versions')
+        self.force_build = self.parse_config('force_build')
+
+    def parse_config(self, key):
+        if self.package_name in self.config and key in self.config[self.package_name]:
+            return self.config[self.package_name][key]
+        return self.config['defaults'][key]
+
+
+class FetchPackageData:
+    def __init__(self, package_name, config, token=None):
+        self.package_name = package_name
+        self.config = config
+        self.token = token
+        self.repo = self.fetch_repo()
+        self.package_data = self.fetch_package_data()
+
+    def fetch_repo(self):
+        return REPO[self.package_name]
+
+    def fetch_releases(self):
+        url = RELEASES.format(repo=self.repo)
+        return fetch_dict(url, token=self.token)
+
+    def parse_release_tag(self, release):
+        tag = release['tag_name']
+        try:
+            version = Version(tag).base_version
+        except InvalidVersion:
+            return None, tag
+        if Version(tag).__str__() != version or release['prerelease']:
+            return None, tag
+        return version, tag
+
+    def version_is_excluded(self, version):
+        if version is None:
+            return True
+        return self.config.version not in {'latest', version}
+
+    def fetch_package_data(self):
+        for release in self.fetch_releases():
+            version, tag = self.parse_release_tag(release)
+            if self.version_is_excluded(version):
+                continue
+            url = PYPROJECT.format(repo=self.repo, tag=tag)
+            requires_python = fetch_dict(url, toml=True)['project']['requires-python']
+            return {'tag': tag, 'version': version, 'requires_python': requires_python}
+        raise FetchPackageDataError('No public release found')
+
+    def fetch_package_version(self):
+        return self.package_data['version']
+
+    def fetch_git_tag(self):
+        return self.package_data['tag']
+
+    def fetch_python_versions(self):
+        # TODO: Handle free-threading tags
+        python_versions = self.config.python_versions
+        requires_python = self.package_data['requires_python']
+        supported_versions = SpecifierSet(requires_python).filter(python_versions)
+        return ['cp' + v.replace('.', '') for v in supported_versions]
+
+
+class FetchBuildMatrix:
+    def __init__(self, package_data, config, store):
+        self.package_name = package_data.package_name
+        self.package_version = package_data.fetch_package_version()
+        self.python_versions = package_data.fetch_python_versions()
+        self.git_tag = package_data.fetch_git_tag()
+        self.config = config
+        self.store = store
+
+    def fetch_os(self, runner):
+        if runner.startswith('ubuntu'):
+            return 'linux'
+        if runner.startswith('windows'):
+            return 'windows'
+        raise ValueError(f'Unknown OS {runner}')
+
+    def exclude(self, python_version, runner):
+        if self.config.force_build:
+            return False
+        info = {
+            'name': self.package_name,
+            'version': self.package_version,
+            'python': python_version,
+            'os': self.fetch_os(runner[0]),
+            'mkl': None,
+        }
+        return Build(info).exclude(fetch_store(self.store))
+
+    def fetch_matrix(self):
+        include = []
+        for runner in self.config.runners:
+            for python_version in self.python_versions:
+                if self.exclude(python_version, runner):
+                    continue
+                entry = {
+                    'runner': runner[0],
+                    'python_version': python_version,
+                    'container': runner[1],
+                }
+                include.append(entry)
+        return {'include': include} if include else None
+
+    def print(self):
+        matrix = self.fetch_matrix()
+        out = {'version': self.package_version, 'tag': self.git_tag, 'matrix': matrix}
+        print(json.dumps(out))
+
+
+class FetchPackageDataError(Exception):
+    pass
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Fetch GHA build matrix')
+    parser.add_argument('package_name', type=str, help='package name')
+    parser.add_argument('-c', '--config', type=str, help='path to config file')
+    parser.add_argument('-s', '--store', type=str, help='path to build store')
+    parser.add_argument('--token', type=str, help='github_token for authentication')
+
+    parser.add_argument(
+        '-r', '--runners', action='append', type=str, help='overwrite runners config'
+    )
+    parser.add_argument(
+        '--python_versions', type=str, action='append', help='overwrite python_versions'
+    )
+    parser.add_argument('-v', '--version', type=str, help='overwrite version')
+    parser.add_argument('-f', '--force-build', action='store_true', help='force build')
+
+    args = parser.parse_args()
+
+    config = Config(args.package_name, Path(args.config))
+    if args.python_versions:
+        config.python_versions = args.python_versions
+    if args.runners:
+        config.runners = args.runners
+    if args.version:
+        config.version = args.version
+    if args.force_build:
+        config.force_build = args.force_build
+
+    package_data = FetchPackageData(args.package_name, config, token=args.token)
+    FetchBuildMatrix(package_data, config, args.store).print()

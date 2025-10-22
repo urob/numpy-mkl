@@ -1,0 +1,18 @@
+defaults:
+  python_versions:
+    - "3.10"
+    - "3.11"
+    - "3.12"
+    - "3.13"
+    - "3.14"
+
+  runners:
+    - ["windows-2022", null]
+    - ["ubuntu-latest", "quay.io/pypa/manylinux_2_28_x86_64"]
+
+  version: latest
+  force_build: false
+
+# Overwrites by package. E.g.,
+# numpy:
+#   python_versions: ["3.13", "3.14"]

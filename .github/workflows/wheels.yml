@@ -28,65 +28,37 @@ jobs:
   meta:
     if: github.repository == 'urob/numpy-mkl'
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ env.VERSION }}
-      matrix: ${{ env.MATRIX }}
-      tag: ${{ env.TAG }}
-
     steps:
-      - name: Check out repository
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
 
-
-      - name: Install uv
+      - name: Set up python
         uses: astral-sh/setup-uv@2ddd2b9cb38ad8efd50337e8ab201519a34c9f24 # v7.1.1
         with:
           version-file: "pyproject.toml"
-          enable-cache: true
-          cache-dependency-glob: |
-            **/pyproject.toml
-            **/uv.lock
 
-      - name: Fetch package version
-        run: |
-          if [[ -z "${{ inputs.version }}" ]]; then
-            if ${{ inputs.name == 'mkl-service' }}; then
-              VERSION="$(uv run tools/fetch_matrix ${{ inputs.name }} --github)"
-              TAG="$(uv run tools/fetch_matrix ${{ inputs.name }} --tag)"
-            else
-              VERSION="$(uv run tools/fetch_matrix ${{ inputs.name }} ${fetch_args})"
-            fi
-          else
-            VERSION="${{ inputs.version }}"
-          fi
-          echo "VERSION=${VERSION}" >>$GITHUB_ENV
-          echo "TAG=${TAG:-v${VERSION}}" >>$GITHUB_ENV
-
-      # TODO: Reuse version / respect explicit version overwrites.
       - name: Fetch build matrix
         run: |
-          fetch_args="--store build.json --runs-on ubuntu-22.04"
-          fetch_args="${fetch_args} --runs-on windows-2022"
-          ${{ inputs.force-build }} && fetch_args="${fetch_args} --force-build"
-          ${{ inputs.name == 'mkl-service' }} && fetch_args="${fetch_args} --github"
-          MATRIX="$(uv run tools/fetch_matrix ${{ inputs.name }} ${fetch_args})"
-          echo "MATRIX=${MATRIX}" >>$GITHUB_ENV
-          echo "${MATRIX}" | yq -P -o yaml
+          uv run tools/fetch_matrix2 ${{ inputs.name }} --config ci-targets.yaml \
+            --store build.json ${{ inputs.force-build && '--force-build' || '' }} >matrix.json
+
+          echo "tag=$(jq -c '."tag"' matrix.json)" >>$GITHUB_OUTPUT
+          echo "version=$(jq -c '."version"' matrix.json)" >>$GITHUB_OUTPUT
+          echo "matrix=$(jq -c '."matrix"' matrix.json)" >>$GITHUB_OUTPUT
+
+          cat matrix.json | yq -P -o yaml
 
   #-----------------------------------------------------------------------------------------------
   build:
-    name: ${{ inputs.name }}-${{ matrix.python }} (${{ matrix.runs-on }})
-    if: ${{ needs.meta.outputs.matrix != 'null' }}
+    name: ${{ inputs.name }}-${{ matrix.python_version }} (${{ matrix.runner }})
     needs: meta
-    runs-on: ${{ matrix.runs-on }}
-    container:
-      ${{ fromJSON(inputs.manylinux) && startsWith(matrix.runs-on, 'ubuntu')
-        && 'quay.io/pypa/manylinux_2_28_x86_64' || null }}
+    if: ${{ needs.meta.outputs.matrix }}
+    runs-on: ${{ matrix.runner }}
+    container: ${{ matrix.container }}
     strategy:
-      fail-fast: false
       matrix: ${{ fromJson(needs.meta.outputs.matrix) }}
+      fail-fast: false
     continue-on-error: true
     defaults:
       run:
@@ -125,10 +97,10 @@ jobs:
           # Keep MKL directory short as it ends up in the final build.
           echo "MKL_DIR=$(realpath "${GITHUB_WORKSPACE}"/../../mkl)" >>$GITHUB_ENV
 
-      - name: Install uv
+      - name: Set up python
         uses: astral-sh/setup-uv@2ddd2b9cb38ad8efd50337e8ab201519a34c9f24 # v7.1.1
         with:
-          python-version: ${{ matrix.python }}
+          python-version: ${{ matrix.python_version }}
           version-file: "pyproject.toml"
           enable-cache: false
 
@@ -304,11 +276,11 @@ jobs:
       - name: Store build information
         run: |
           mkdir -p wheelhouse
-          cat >wheelhouse/versions-${{ matrix.python}}-${{ runner.os }}.json <<EOF
+          cat >wheelhouse/versions-${{ matrix.python_version}}-${{ runner.os }}.json <<EOF
           {
             "name": "${{ inputs.name }}",
             "version": "${{ needs.meta.outputs.version }}",
-            "python": "${{ matrix.python }}",
+            "python": "${{ matrix.python_version }}",
             "os": "${{ runner.os }}",
             "mkl": "${{ env.MKL_VERSION }}"
           }
@@ -317,7 +289,7 @@ jobs:
       - name: Archive
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: ${{ inputs.name }}-${{ matrix.python }}-${{ runner.os }}
+          name: ${{ inputs.name }}-${{ matrix.python_version }}-${{ runner.os }}
           path: |
             wheelhouse/*.whl
             wheelhouse/*.json
@@ -325,8 +297,8 @@ jobs:
 
   #-----------------------------------------------------------------------------------------------
   release:
-    if: ${{ needs.meta.outputs.matrix != 'null' }}
     needs: [meta, build]
+    if: ${{ needs.meta.outputs.matrix != 'null' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -348,14 +320,10 @@ jobs:
           path: pypi
           persist-credentials: true  # Need credentials to push.
 
-      - name: Install uv
+      - name: Set up python
         uses: astral-sh/setup-uv@2ddd2b9cb38ad8efd50337e8ab201519a34c9f24 # v7.1.1
         with:
           version-file: "main/pyproject.toml"
-          enable-cache: true
-          cache-dependency-glob: |
-            **/pyproject.toml
-            **/uv.lock
 
       # - name: Create directory for wheels
       #   run: |

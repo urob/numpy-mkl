@@ -6,8 +6,7 @@ import time
 from pathlib import Path
 
 from packaging.version import Version
-
-PACKAGES = ('numpy', 'scipy', 'mkl_service')
+from tabulate import tabulate
 
 
 def fetch_builds(path):
@@ -17,11 +16,34 @@ def fetch_builds(path):
     return list(store.keys())
 
 
-def fetch_latest_build(package, builds):
-    versions = [_.split('-')[1] for _ in builds if _.startswith(package)]
-    if not versions:
-        return 'n/a'
-    return max(Version(_) for _ in versions)
+def fetch_latest(builds):
+    latest = {}
+    py_versions = {}
+    for build in builds:
+        package, version, py_version, os = build.split('-')
+        package = (
+            package.replace('numpy', 'NumPy')
+            .replace('scipy', 'SciPy')
+            .replace('_', '-')
+        )
+        key = (package, os.capitalize())
+        if Version(version) >= latest.get(key, Version('0')):
+            if Version(version) > latest.get(key, Version('0')):
+                py_versions[key] = []
+            py_versions[key] = sorted({py_version} | set(py_versions[key]))
+            latest[key] = Version(version)
+
+    return sort_entries(latest), sort_entries(py_versions)
+
+
+def sort_entries(dct):
+    keys = sorted(dct.keys())
+    return {k: dct[k] for k in keys}
+
+
+def parse_python_versions(v):
+    min_, max_ = min(v), max(v)
+    return f'≥{min_[2]}.{min_[3:5]}, ≤{max_[2]}.{max_[3:5]}'
 
 
 if __name__ == '__main__':
@@ -33,10 +55,12 @@ if __name__ == '__main__':
     builds = fetch_builds(Path(args.store))
     template = Path(args.template).read_text()
 
-    latest = ''
-    for p in PACKAGES:
-        latest_ = fetch_latest_build(p, builds)
-        latest += f'- {p}: `{latest_}`\n'
+    latest, py_versions = fetch_latest(builds)
+    table = [['Package', 'OS', 'Latest version', 'Supported Python versions']]
+    for key, latest_ in latest.items():
+        table.append([*key, latest_, parse_python_versions(py_versions[key])])
 
-    notes = template.format(date=time.strftime('%Y-%m-%d'), latest=latest)
+    md_table = tabulate(table[1:], headers=table[0], tablefmt='github')
+
+    notes = template.format(date=time.strftime('%Y-%m-%d'), latest=md_table)
     print(notes)

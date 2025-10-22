@@ -6,10 +6,25 @@ Released on {date}.
 
 ### Usage
 
-The release assets below aren't intended to be installed in isolation. To work correctly, one must install compatible, mkl-accelerated versions of `numpy`, `mkl-service` and, if desired, `scipy`. As detailed in the [setup guide](https://github.com/urob/numpy-mkl#installation), it is highly recommended to use `pip` or `uv` to automatically handle all dependencies. E.g.,
-```shell
+It is recommended to use `uv` or `pip` to automatically handle all dependencies.
+
+**uv**
+
+```sh
+# Run this from project directory
+uv init
+uv add numpy scipy --index https://urob.github.io/numpy-mkl
+```
+
+**pip**
+
+```sh
 pip install numpy scipy --extra-index-url https://urob.github.io/numpy-mkl
 ```
 
-If a manual installation is required, current wheels for all packages and versions can be be [downloaded here](https://urob.github.io/numpy-mkl/). Attached below are *newly* build wheels only.
+**Manual installation**
+
+Current wheels for all packages and versions can be [downloaded here](https://urob.github.io/numpy-mkl/). Attached below are *newly* built wheels only.
+
+Manual installs must install compatible versions of `mkl`, `mkl-service`, and their indirect dependencies. For maximum compatibility, it is recommended to install `mkl-service` from this repository, which has been patched to automatically detect and load the `mkl` library whenever `numpy` or `scipy` are imported.
 

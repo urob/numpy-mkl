@@ -1,2 +1,8 @@
-/src/
 __pycache__/
+
+# Do not commit any directories created during CI.
+/mkl/
+/pypi/
+/release/
+/src/
+/wheelhouse/

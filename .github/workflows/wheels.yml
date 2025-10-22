@@ -275,7 +275,6 @@ jobs:
 
       - name: Store build information
         run: |
-          mkdir -p wheelhouse
           cat >wheelhouse/versions-${{ matrix.python_version}}-${{ runner.os }}.json <<EOF
           {
             "name": "${{ inputs.name }}",
@@ -310,7 +309,6 @@ jobs:
           # Explicitly set ref to include commits from the meta job.
           # https://github.com/actions/checkout/issues/439#issuecomment-830862188
           ref: main
-          path: main
           persist-credentials: true  # Need credentials to push.
 
       - name: Checkout deployment branch
@@ -323,36 +321,29 @@ jobs:
       - name: Set up python
         uses: astral-sh/setup-uv@2ddd2b9cb38ad8efd50337e8ab201519a34c9f24 # v7.1.1
         with:
-          version-file: "main/pyproject.toml"
-
-      # - name: Create directory for wheels
-      #   run: |
-      #     mkdir wheelhouse
+          version-file: "pyproject.toml"
 
       - name: Fetch wheels
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           pattern: ${{ inputs.name }}-*
-          path: wheelhouse
+          path: release
           merge-multiple: true
 
       - name: Bump project version
-        working-directory: main
         run: |
           uv version --bump patch
           echo "VERSION=$(uv version --short)" >>$GITHUB_ENV
 
       - name: Store build metadata
         run: |
-          main/tools/store_info.py wheelhouse/*.json --store main/build.json
-          rm wheelhouse/*.json
+          tools/store_info.py release/*.json --store build.json
 
       - name: Update badges
         run: |
-          main/tools/update_icons main/README.md --store main/build.json
+          tools/update_icons README.md --store build.json
 
       - name: Commit release data
-        working-directory: main
         run: |
           if [[ -z "$(git status --porcelain)" ]]; then
               echo "No changes to commit"
@@ -365,23 +356,20 @@ jobs:
           git push origin HEAD:main
 
       - name: Write release notes
-        working-directory: main
         run: |
-          uv run tools/release_notes templates/release.md --store build.json >../release.md
+          uv run tools/release_notes templates/release.md --store build.json >release/release.md
 
       - name: Release wheels
-        working-directory: main
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${VERSION}" --title "${VERSION}" --notes-file ../release.md ../wheelhouse/*
+          gh release create "${VERSION}" --title "${VERSION}" --notes-file release/release.md release/*.whl
 
       - name: Generate index
-        working-directory: main
         run: |
           # Wait 10s for release to get finished.
           sleep 10
-          uv run tools/make_index2 ../pypi/${{ inputs.name}}/index.html
+          uv run tools/make_index2 pypi/${{ inputs.name}}/index.html
 
       - name: Deploy index
         working-directory: pypi

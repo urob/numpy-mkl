@@ -11,7 +11,7 @@ class Wheel:
     def __init__(self, asset):
         package, version, py_version, _, platform = asset['name'].split('-')
         os = 'windows' if platform.startswith('win') else 'linux'
-        self.wheel = (package, os, version, py_version)
+        self.id = (package, os, version, py_version)
         self.downloads = asset['download_count']
 
 
@@ -30,8 +30,7 @@ class Assets:
         for release in self.fetch_releases():
             wheels = (Wheel(a) for a in release['assets'])
             for wheel in wheels:
-                if wheel.downloads > 0:
-                    stats[wheel.wheel] = wheel.downloads + stats.get(wheel.wheel, 0)
+                stats[wheel.id] = wheel.downloads + stats.get(wheel.id, 0)
         return dict(sorted(stats.items()))
 
 
@@ -41,6 +40,29 @@ class FetchReleaseDataError(Exception):
 
 if __name__ == '__main__':
     stats = Assets().fetch_stats()
+    python_versions = sorted({_[3] for _ in stats})
+    n = len(python_versions)
+    table = {}
     for s, d in stats.items():
-        print(f'{s[0]:<12} {s[1]:<7} {s[2]:<6} {s[3]:<7}  {d}')
+        id_, python_version = s[:-1], s[-1]
+        if id_ not in table:
+            table[id_] = [0] * n
+        table[id_][python_versions.index(python_version)] += d
+
+    top = '┌' + '─' * 32 + '┬' + '─' * (5 * n + 2) + '┬' + '─' * 7 + '┐'
+    med = '├' + '─' * 32 + '┼' + '─' * (5 * n + 2) + '┼' + '─' * 7 + '┤'
+    bot = '└' + '─' * 32 + '┴' + '─' * (5 * n + 2) + '┴' + '─' * 7 + '┘'
+    scheme = '│  {:<11}  {:<7}  {:<6}  │' + '  {:>3}' * n + '  │  {:>3}  │'
+    print(top)
+    print(
+        scheme.format('Package', 'OS', 'Ver.', *[_[2:] for _ in python_versions], 'all')
+    )
+    s_ = None
+    for s, d in table.items():
+        if s_ != s[0]:
+            print(med)
+        s_ = s[0]
+        if sum(d) > 0:
+            print(scheme.format(*s, *[_ or '' for _ in d], sum(d)))
+    print(bot)
     print(f'total: {sum(stats.values())}')

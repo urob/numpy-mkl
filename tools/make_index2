@@ -108,6 +108,8 @@ class Wheels:
     def get_wheels(self, token=None):
         wheels = []
         for release in self.fetch_releases(token=token):
+            if release['draft']:
+                continue
             assets = release['assets']
             filtered = [
                 a

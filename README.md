@@ -12,14 +12,14 @@ The wheels are accessible through a custom Python Package Index (PyPI) and can b
 
 ## Installation
 
-MKL-accelerated wheels are available for 64-bit versions of Linux and Windows. There are no
-prerequisites apart from `pip` or `uv`; all dependencies are automatically installed by the package
-manager.
+MKL-accelerated wheels are available for 64-bit versions of Linux and Windows. If using one of the
+recommended package manager below, there are no other prerequisites; all dependencies — including
+Python if using uv or Nix — are automatically installed by the package manager.
 
 **uv**
 
 ```sh
-# Run this from project directory
+# Create a Python project with uv.
 uv init
 uv add numpy scipy --index https://urob.github.io/numpy-mkl
 ```
@@ -27,8 +27,24 @@ uv add numpy scipy --index https://urob.github.io/numpy-mkl
 **pip**
 
 ```sh
+# Install globally or into active venv.
 pip install numpy scipy --extra-index-url https://urob.github.io/numpy-mkl
 ```
+
+**nix**
+
+```sh
+# Create and run virtual devshell using Nix.
+nix flake init --template github:urob/numpy-mkl
+nix develop .
+```
+
+**manual**
+
+Wheels for manual installs can be [downloaded here](https://urob.github.io/numpy-mkl/). Manual
+installs must install compatible versions of `mkl-service`, `mkl`, and its indirect dependencies. It
+is recommended to install `mkl-service` from this repository, which has been patched to detect and
+autoload the `mkl` library at runtime.
 
 ## Cross-platform collaborations
 
@@ -71,12 +87,11 @@ The usual way to obtain MKL-accelerated NumPy and SciPy packages is through
 this repository is to provide an alternative for users who prefer to use `pip` or `uv` for package
 management. Other alternatives are listed below.
 
-|                                                                                                                                 | MKL | PyPI | Notes                      |
-| ------------------------------------------------------------------------------------------------------------------------------- | --- | ---- | -------------------------- |
-| This repository                                                                                                                 | Yes | Yes  |                            |
-| [Intel(r) Distribution for Python](https://www.intel.com/content/www/us/en/developer/tools/oneapi/distribution-for-python.html) | Yes | Yes  | Does not support NumPy 2.x |
-| [Numpy-mkl-wheels](https://github.com/cgohlke/numpy-mkl-wheels)                                                                 | Yes | No   | No Linux wheels            |
-| [Python Package Index](https://pypi.org/)                                                                                       | No  | Yes  | Slow on Intel CPUs         |
+|                                                                                                                                 |  Windows | Linux | Notes                      |
+| ------------------------------------------------------------------------------------------------------------------------------- |  ------- | ----- | -------------------------- |
+| This repository                                                                                                                 |  Yes     | Yes   |                            |
+| [Intel(r) Distribution for Python](https://www.intel.com/content/www/us/en/developer/tools/oneapi/distribution-for-python.html) |  Yes     | Yes   | Does not support NumPy 2.x |
+| [Numpy-mkl-wheels](https://github.com/cgohlke/numpy-mkl-wheels)                                                                 |  Yes     | No    | Manual install only        |
 
 ## Technical details
 

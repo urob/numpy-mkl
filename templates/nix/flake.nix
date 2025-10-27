@@ -25,6 +25,7 @@
             ps.scipy
 
             # Add other Python packages here. E.g.,
+            # ps.matplotlib
             # ps.pandas
           ]))
 

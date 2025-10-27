@@ -1,0 +1,128 @@
+#!/usr/bin/env python
+
+import argparse
+from base64 import b64encode
+from pathlib import Path
+
+import requests
+from packaging.requirements import Requirement
+from packaging.utils import canonicalize_name
+
+DEPENDENCIES = [
+    'intel-cmplr-lib-ur',
+    'intel-openmp',
+    'mkl',
+    'onemkl-license',
+    'tcmlib',
+    'tbb',
+    'tcmlib',
+    'umf',
+]
+
+REQUESTS_TIMEOUT = 45
+
+PYPY = 'https://pypi.org/pypi/{package}/json'
+
+
+class Flake:
+    def __init__(self, package_name, ver='latest'):
+        self.package_name = package_name
+        self.package_data = FetchPackageData(package_name, ver=ver)
+
+    def make_flake(self, template, outdir):
+        url, hash_ = self.package_data.fetch_url()
+        kwargs = {
+            'name': self.package_name,
+            'version': self.package_data.fetch_package_version(),
+            'url': url,
+            'hash': hash_,
+            'dependencies': self.package_data.fetch_dependencies(),
+            'description': self.package_data.fetch_description(),
+            'project_url': self.package_data.fetch_project_url(),
+            'license': self.package_data.fetch_license(),
+        }
+
+        flake = template.format(**kwargs)
+        filename = outdir / f'{self.package_name}.nix'
+        filename.write_text(flake)
+
+
+class FetchPackageData:
+    def __init__(self, package_name, ver='latest'):
+        # TODO: Add support for fetching versions other than latest.
+        self.package_name = canonicalize_name(package_name)
+        self.ver = ver
+        self.package_data = self.fetch_package_data()
+
+    def fetch_package_data(self):
+        url = PYPY.format(package=self.package_name)
+        headers = {'Accept': 'application/json'}
+        response = requests.get(url, timeout=REQUESTS_TIMEOUT, headers=headers)
+        if (rc := response.status_code) != 200:  # noqa: PLR2004
+            raise FetchPackageDataError(f'Download failed with status code {rc}')
+        return response.json()
+
+    def fetch_package_version(self):
+        return self.package_data['info']['version']
+
+    def fetch_description(self):
+        # return self.package_data['info']['description'].split('.')[0]
+        return self.package_data['info']['summary']
+
+    def fetch_license(self):
+        return self.package_data['info']['license'] or 'Unknown'
+
+    def fetch_project_url(self):
+        return self.package_data['info']['project_url']
+
+    def fetch_dependencies(self):
+        deps = self.package_data['info']['requires_dist'] or []
+        deps = [Requirement(_) for _ in deps]
+        deps_ = ''
+        for d in deps:
+            deps_ += f'\n    (callPackage ./{d.name}.nix {{ }}) # {d.specifier}'
+        return deps_
+
+    def fetch_url(self):
+        urls = self.package_data['urls']
+        for url in urls:
+            filename = url['filename']
+            if url['packagetype'] != 'bdist_wheel':
+                continue
+            name, ver, pyx, _abi, platform = filename.split('-')
+            if (name := canonicalize_name(name)) != self.package_name:
+                raise ValueError(f'Expected {self.package_name}, got {name}')
+            if self.ver not in {'latest', ver}:
+                raise ValueError(f'Expected {self.ver}, got {ver}')
+            if platform != 'any' and 'linux' not in platform:
+                continue
+            if pyx == 'py2':
+                continue
+            if pyx not in {'py2.py3', 'py3'}:
+                raise ValueError(f'Unexpected interpreter {pyx}')
+            sha256 = url['digests']['sha256']
+            return url['url'], self.hex_to_base64(sha256)
+        raise ValueError('No valid url found')
+
+    @staticmethod
+    def hex_to_base64(hexdigest):
+        digest = bytes.fromhex(hexdigest)
+        return 'sha256-' + b64encode(digest).decode()
+
+
+class FetchPackageDataError(Exception):
+    pass
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Create nix package from PyPI package')
+
+    parser.add_argument('template', type=str, help='flake template')
+    parser.add_argument('-o', '--outdir', type=str, help='flake template')
+
+    args = parser.parse_args()
+    template = Path(args.template).read_text()
+    outdir = Path(args.outdir)
+    for p in DEPENDENCIES:
+        flake = Flake(p, ver='latest')
+        flake.make_flake(template, outdir)

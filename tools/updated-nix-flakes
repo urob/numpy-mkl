@@ -1,0 +1,159 @@
+#!/usr/bin/env python
+
+import argparse
+import re
+from base64 import b64encode
+from pathlib import Path
+
+import requests
+from packaging.version import Version
+
+PACKAGES = [
+    'numpy',
+    'scipy',
+    'mkl-service',
+]
+
+REQUESTS_TIMEOUT = 45
+
+PYPY = 'https://pypi.org/pypi/{package}/json'
+WHEEL = r'/download/(?P<release>.*?)/(?P<name>.*?\.whl)'
+
+
+class Releases:
+    def __init__(self):
+        self.url = 'https://api.github.com/repos/urob/numpy-mkl/releases'
+
+    def fetch_releases(self, token=None):
+        headers = self.headers(token=token)
+        response = requests.get(self.url, timeout=REQUESTS_TIMEOUT, headers=headers)
+        if (rc := response.status_code) != 200:  # noqa: PLR2004
+            raise FetchReleaseDataError(f'Download failed with status code {rc}')
+        return response.json()
+
+    @staticmethod
+    def headers(token=None):
+        headers = {
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+            'User-Agent': 'numpy-mkl',
+        }
+        if token:
+            headers['Authorization'] = f'Bearer {token}'
+        return headers
+
+
+class Asset:
+    def __init__(self, asset):
+        self.asset = asset
+        self.is_wheel = asset['name'].endswith('.whl')
+        if self.is_wheel:
+            self.fetch_wheel_data()
+
+    def fetch_wheel_data(self):
+        name = self.asset['name'][:-4]
+        self.url = self.asset['browser_download_url']
+        self.hash = self.fetch_sri(self.asset['digest'])
+        self.package, version, self.pyx, _abi, self.platform = name.split('-')
+        self.version = Version(version)
+
+    def is_package(self, package):
+        package = package.replace('-', '_')
+        return self.is_wheel and 'linux' in self.platform and self.package == package
+
+    def fetch_sri(self, digest):
+        digest_type, sha256 = digest.split(':')
+        if digest_type != 'sha256':
+            raise ValueError(f'Expected sha256, got {digest_type}')
+        sha256_bytes = bytes.fromhex(sha256)
+        return 'sha256-' + b64encode(sha256_bytes).decode()
+
+
+class UpdateFlake:
+    def __init__(self, package, releases):
+        self.package = package
+        self.releases = releases
+        self.wheels = list(self.fetch_package_wheels())
+
+    def fetch_package_wheels(self):
+        for release in self.releases:
+            for asset in release['assets']:
+                wheel = Asset(asset)
+                if wheel.is_package(self.package) and not release['draft']:
+                    yield wheel
+
+    def latest_version(self):
+        latest = max(self.wheels, key=lambda _: _.version)
+        return latest.version
+
+    def fetch_urls(self, version):
+        urls = {}
+        for wheel in self.wheels:
+            if wheel.version == version:
+                urls[wheel.pyx] = {'url': wheel.url, 'hash': wheel.hash}
+        return {_: urls[_] for _ in sorted(urls)}
+
+    def generate_urls(self, version):
+        scheme = """\
+      {{
+        release = "{release}";
+        name = "{name}";
+        hash = "{hash}";
+      }}"""
+
+        out = '  wheel =\n   '
+        for pyx_, url in self.fetch_urls(version).items():
+            m = re.search(WHEEL, url['url'])
+            pyx = pyx_[2] + '.' + pyx_[3:]
+            out += f' if pyVersion == "{pyx}" then\n'
+            out += scheme.format(release=m['release'], name=m['name'], hash=url['hash'])
+            out += '\n    else'
+        out += '\n'
+        out += scheme.format(release='', name='', hash='') + ';'
+        return out
+
+    def sub_flake(self, pattern, replacement, lookbehind='', lookahead=''):
+        if lookbehind:
+            lookbehind = f'(?<={lookbehind})'
+        if lookahead:
+            lookahead = f'(?={lookahead})'
+
+        self.flake = re.sub(
+            f'{lookbehind}{pattern}{lookahead}', replacement, self.flake
+        )
+
+    def link_latest(self, nixdir, version='latest'):
+        if version == 'latest':
+            version = self.latest_version()
+        file = nixdir / f'{self.package}.nix'
+        self.flake = file.read_text()
+
+        # Update package version.
+        self.sub_flake('.*?', str(version), lookbehind='version = "', lookahead='";')
+
+        # Update download urls.
+        lookbehind = r'<<< Automatically generated, do not edit.\n'
+        lookahead = r'\n  # >>>'
+        urls = self.generate_urls(version)
+        self.sub_flake('(?s:.*?)', urls, lookbehind, lookahead)
+
+        file.write_text(self.flake)
+
+
+class FetchReleaseDataError(Exception):
+    pass
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Create nix package from PyPI package')
+
+    parser.add_argument('-d', '--nixdir', type=str, help='flake template')
+
+    args = parser.parse_args()
+    nixdir = Path(args.nixdir)
+
+    releases = Releases().fetch_releases()
+
+    for package in PACKAGES:
+        flake = UpdateFlake(package, releases)
+        flake.link_latest(nixdir)

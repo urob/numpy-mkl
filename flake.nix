@@ -27,7 +27,7 @@
       };
 
       templates.default = {
-        path = ./templates/flake_template.nix;
+        path = ./templates/nix;
         description = "MKL-accelerated Python environment with NumPy and SciPy";
       };
     };

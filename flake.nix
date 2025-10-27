@@ -1,5 +1,5 @@
 {
-  description = "MKL-accelerated NumPy and SciPy wheels";
+  description = "MKL-accelerated NumPy and SciPy derivations";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -24,6 +24,11 @@
             ps.scipy
           ]))
         ];
+      };
+
+      templates.default = {
+        path = ./templates/flake_template.nix;
+        description = "MKL-accelerated Python environment with NumPy and SciPy";
       };
     };
 }

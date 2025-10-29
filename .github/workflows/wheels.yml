@@ -47,8 +47,8 @@ jobs:
           uv run tools/fetch_matrix2 ${{ inputs.name }} --config ci-targets.yaml \
             --store build.json ${{ inputs.force-build && '--force-build' || '' }} >matrix.json
 
-          echo "tag=$(jq -c '."tag"' matrix.json)" >>$GITHUB_ENV
-          echo "version=$(jq -c '."version"' matrix.json)" >>$GITHUB_ENV
+          echo "tag=$(jq -rc '."tag"' matrix.json)" >>$GITHUB_ENV
+          echo "version=$(jq -rc '."version"' matrix.json)" >>$GITHUB_ENV
           echo "matrix=$(jq -c '."matrix"' matrix.json)" >>$GITHUB_ENV
 
           cat matrix.json | yq -P -o yaml

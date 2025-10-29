@@ -28,6 +28,10 @@ jobs:
   meta:
     if: github.repository == 'urob/numpy-mkl'
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ env.tag }}
+      version: ${{ env.version }}
+      matrix: ${{ env.matrix }}
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
@@ -43,9 +47,9 @@ jobs:
           uv run tools/fetch_matrix2 ${{ inputs.name }} --config ci-targets.yaml \
             --store build.json ${{ inputs.force-build && '--force-build' || '' }} >matrix.json
 
-          echo "tag=$(jq -c '."tag"' matrix.json)" >>$GITHUB_OUTPUT
-          echo "version=$(jq -c '."version"' matrix.json)" >>$GITHUB_OUTPUT
-          echo "matrix=$(jq -c '."matrix"' matrix.json)" >>$GITHUB_OUTPUT
+          echo "tag=$(jq -c '."tag"' matrix.json)" >>$GITHUB_ENV
+          echo "version=$(jq -c '."version"' matrix.json)" >>$GITHUB_ENV
+          echo "matrix=$(jq -c '."matrix"' matrix.json)" >>$GITHUB_ENV
 
           cat matrix.json | yq -P -o yaml
 
@@ -53,7 +57,7 @@ jobs:
   build:
     name: ${{ inputs.name }}-${{ matrix.python_version }} (${{ matrix.runner }})
     needs: meta
-    if: ${{ needs.meta.outputs.matrix }}
+    if: ${{ needs.meta.outputs.matrix != 'null' }}
     runs-on: ${{ matrix.runner }}
     container: ${{ matrix.container }}
     strategy:

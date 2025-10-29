@@ -406,5 +406,29 @@
   },
   "scipy-1.16.2-cp314-windows": {
     "mkl": "2025.2.0"
+  },
+  "scipy-1.16.3-cp311-linux": {
+    "mkl": "2025.3.0"
+  },
+  "scipy-1.16.3-cp311-windows": {
+    "mkl": "2025.3.0"
+  },
+  "scipy-1.16.3-cp312-linux": {
+    "mkl": "2025.3.0"
+  },
+  "scipy-1.16.3-cp312-windows": {
+    "mkl": "2025.3.0"
+  },
+  "scipy-1.16.3-cp313-linux": {
+    "mkl": "2025.3.0"
+  },
+  "scipy-1.16.3-cp313-windows": {
+    "mkl": "2025.3.0"
+  },
+  "scipy-1.16.3-cp314-linux": {
+    "mkl": "2025.3.0"
+  },
+  "scipy-1.16.3-cp314-windows": {
+    "mkl": "2025.3.0"
   }
 }

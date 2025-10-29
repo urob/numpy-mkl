@@ -63,6 +63,6 @@ if __name__ == '__main__':
             print(med)
         s_ = s[0]
         if sum(d) > 0:
-            print(scheme.format(*s, *[_ or '' for _ in d], sum(d)))
+            print(scheme.format(*s, *[_ or '.' for _ in d], sum(d)))
     print(bot)
     print(f'total: {sum(stats.values())}')

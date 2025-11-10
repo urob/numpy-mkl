@@ -45,7 +45,8 @@ jobs:
       - name: Fetch build matrix
         run: |
           uv run tools/fetch_matrix2 ${{ inputs.name }} --config ci-targets.yaml \
-            --store build.json ${{ inputs.force-build && '--force-build' || '' }} >matrix.json
+            --store build.json --token ${{ secrets.GITHUB_TOKEN }} \
+            ${{ inputs.force-build && '--force-build' || '' }} >matrix.json
 
           echo "tag=$(jq -rc '."tag"' matrix.json)" >>$GITHUB_ENV
           echo "version=$(jq -rc '."version"' matrix.json)" >>$GITHUB_ENV
@@ -373,7 +374,7 @@ jobs:
         run: |
           # Wait 10s for release to get finished.
           sleep 10
-          uv run tools/make_index2 pypi/${{ inputs.name}}/index.html
+          uv run tools/make_index2 pypi/${{ inputs.name}}/index.html --token ${{ secrets.GITHUB_TOKEN }}
 
       - name: Deploy index
         working-directory: pypi

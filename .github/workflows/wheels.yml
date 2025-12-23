@@ -161,7 +161,7 @@ jobs:
           echo "" >>LICENSE.txt
           echo "----" >>LICENSE.txt
           echo "" >>LICENSE.txt
-          cat LICENSES_bundled.txt >>LICENSE.txt
+          [[ "${{ inputs.name }}" == "scipy" ]] && cat LICENSES_bundled.txt >>LICENSE.txt
           cat "${GITHUB_WORKSPACE}/patches/LICENSE_MKL.txt" >>LICENSE.txt
         if: inputs.name != 'mkl-service'
 

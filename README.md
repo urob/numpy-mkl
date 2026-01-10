@@ -1,7 +1,7 @@
 # numpy-mkl
 
 [![NumPy](https://img.shields.io/badge/NumPy-2.1_%7C_2.2_%7C_2.3_%7C_2.4-013243)](https://urob.github.io/numpy-mkl/numpy/)
-[![SciPy](https://img.shields.io/badge/SciPy-1.15_%7C_1.16-8caae6)](https://urob.github.io/numpy-mkl/scipy/)
+[![SciPy](https://img.shields.io/badge/SciPy-1.15_%7C_1.16_%7C_1.17-8caae6)](https://urob.github.io/numpy-mkl/scipy/)
 [![mkl-service](https://img.shields.io/badge/mkl--service-2.4_%7C_2.5_%7C_2.6-3b5526)](https://urob.github.io/numpy-mkl/mkl-service/)
 
 This repository provides binary wheels for NumPy and SciPy, linked to Intel's high-performance

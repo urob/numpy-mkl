@@ -38,6 +38,16 @@ class FetchReleaseDataError(Exception):
     pass
 
 
+def fmt(x):
+    if x == 0:
+        return '.'
+    if x >= 10_000:
+        return f'{x / 10_000:.0f}k'
+    # if x >= 1_000:
+    #     return f'{x/1_000:.1f}k'
+    return str(x)
+
+
 if __name__ == '__main__':
     stats = Assets().fetch_stats()
     python_versions = sorted({_[3] for _ in stats})
@@ -49,10 +59,10 @@ if __name__ == '__main__':
             table[id_] = [0] * n
         table[id_][python_versions.index(python_version)] += d
 
-    top = '┌' + '─' * 32 + '┬' + '─' * (5 * n + 2) + '┬' + '─' * 7 + '┐'
-    med = '├' + '─' * 32 + '┼' + '─' * (5 * n + 2) + '┼' + '─' * 7 + '┤'
-    bot = '└' + '─' * 32 + '┴' + '─' * (5 * n + 2) + '┴' + '─' * 7 + '┘'
-    scheme = '│  {:<11}  {:<7}  {:<6}  │' + '  {:>3}' * n + '  │  {:>3}  │'
+    top = '┌' + '─' * 32 + '┬' + '─' * (6 * n + 2) + '┬' + '─' * 8 + '┐'
+    med = '├' + '─' * 32 + '┼' + '─' * (6 * n + 2) + '┼' + '─' * 8 + '┤'
+    bot = '└' + '─' * 32 + '┴' + '─' * (6 * n + 2) + '┴' + '─' * 8 + '┘'
+    scheme = '│  {:<11}  {:<7}  {:<6}  │' + '  {:>4}' * n + '  │  {:>4}  │'
     print(top)
     print(
         scheme.format('Package', 'OS', 'Ver.', *[_[2:] for _ in python_versions], 'all')
@@ -63,6 +73,6 @@ if __name__ == '__main__':
             print(med)
         s_ = s[0]
         if sum(d) > 0:
-            print(scheme.format(*s, *[_ or '.' for _ in d], sum(d)))
+            print(scheme.format(*s, *[fmt(_) for _ in d], fmt(sum(d))))
     print(bot)
     print(f'total: {sum(stats.values())}')

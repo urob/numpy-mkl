@@ -28,7 +28,7 @@ uv add numpy scipy --index https://urob.github.io/numpy-mkl
 
 ```sh
 # Install globally or into active venv.
-pip install numpy scipy --extra-index-url https://urob.github.io/numpy-mkl
+pip install numpy scipy --index-url https://urob.github.io/numpy-mkl
 ```
 
 **nix**

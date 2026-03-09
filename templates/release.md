@@ -19,7 +19,7 @@ uv add numpy scipy --index https://urob.github.io/numpy-mkl
 **pip**
 
 ```sh
-pip install numpy scipy --extra-index-url https://urob.github.io/numpy-mkl
+pip install numpy scipy --index-url https://urob.github.io/numpy-mkl
 ```
 
 **Manual installation**

@@ -56,7 +56,7 @@ let
   rpathExtras = lib.makeLibraryPath [ stdenv.cc.libc ];
 in
 buildPythonPackage rec {
-  pname = "numpy";
+  pname = "mkl-service";
   version = "2.6.1";
   format = "wheel";
 

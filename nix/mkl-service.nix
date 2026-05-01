@@ -72,7 +72,8 @@ buildPythonPackage rec {
   # Add libc libraries to runtime path of all mkl-service libs.
   # Redundant paths are removed during the main fixup phase.
   preFixup = ''
-    find $out -name '*.so' -exec patchelf --add-rpath ${rpathExtras} {} \;
+    find "$out" \( -iname '*.so' -o -iname '*.so.*' \) -exec patchelf \
+      --add-rpath ${rpathExtras} {} \;
   '';
 
   pythonImportsCheck = [ "mkl" ];

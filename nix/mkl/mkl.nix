@@ -24,7 +24,7 @@ buildPythonPackage rec {
   # Add dependency libraries to runtime path of mkl libs. Do this
   # postFixup as patchelf doesn't detect undeclared dependencies.
   postFixup = ''
-    find $out \( -name '*.so' -o -name '*.so.*' \) -exec patchelf \
+    find "$out" \( -iname '*.so' -o -iname '*.so.*' \) -exec patchelf \
       --add-rpath ${lib.makeLibraryPath dependencies} {} \;
   '';
 

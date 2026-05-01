@@ -77,7 +77,8 @@ buildPythonPackage rec {
   # Add cc and libc libraries to runtime path of all numpy libs.
   # Redundant paths are removed during the main fixup phase.
   preFixup = ''
-    find $out -name '*.so' -exec patchelf --add-rpath ${rpathExtras} {} \;
+    find "$out" \( -iname '*.so' -o -iname '*.so.*' \) -exec patchelf \
+      --add-rpath ${rpathExtras} {} \;
   '';
 
   pythonImportsCheck = [ "numpy" ];

@@ -127,10 +127,10 @@ jobs:
           cat "$(python tools/get_file_in_pkg LICENSE.txt --pkg mkl-devel)" \
               >>"${GITHUB_WORKSPACE}/patches/LICENSE_MKL.txt"
 
-          # Add .so -> .so.2 symlinks to fix linking for mkl-service.
+          # Add .so -> .so.* symlinks to fix linking for mkl-service.
           if [[ "${{ runner.os }}" == "Linux" ]]; then
             cd "${{ env.MKL_DIR }}"/lib
-            for i in $( ls libmkl*.so.2 ); do ln -s $i ${i%.*}; done
+            for i in libmkl*.so.*; do ln -s $i ${i%.*}; done
           fi
 
       - name: Apply patches

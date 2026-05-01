@@ -7,16 +7,16 @@
 }:
 buildPythonPackage rec {
   pname = "umf";
-  version = "1.0.2";
+  version = "1.1.0";
   format = "wheel";
 
   src = fetchurl {
-    url = "https://files.pythonhosted.org/packages/27/8e/4a90b6aa955268988e7491f502b7ac2bd65cb954b4979bfcc892cf019b50/umf-1.0.2-py2.py3-none-manylinux_2_28_x86_64.whl";
-    hash = "sha256-700USiAHpzoaIu5XXuT1oYlKIGUyxvbXe0z1SGQ1Avs=";
+    url = "https://files.pythonhosted.org/packages/c4/72/2e0182f4e6a727a15d0a8a99a82182a4f5bdec1a4f5767acfd2abdc72070/umf-1.1.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+    hash = "sha256-VnFSxe5rjhbMVrKaipprkY3h/r+Jh39x6i6CR+85/DI=";
   };
 
   dependencies = [
-    (callPackage ./tcmlib.nix { }) # >=1.4
+    (callPackage ./tcmlib.nix { }) # >=1.5
   ];
 
   # Add dependency libraries to runtime path of mkl libs. Do this

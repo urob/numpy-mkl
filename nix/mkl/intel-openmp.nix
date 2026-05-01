@@ -7,16 +7,16 @@
 }:
 buildPythonPackage rec {
   pname = "intel-openmp";
-  version = "2025.3.0";
+  version = "2026.0.0";
   format = "wheel";
 
   src = fetchurl {
-    url = "https://files.pythonhosted.org/packages/6a/87/68241d0b532f0e41d5b2928b640b00f9bb48945df9921df1d878f42c1d38/intel_openmp-2025.3.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-    hash = "sha256-lI2daiLtdkMwWnF8KsJni66MEa2v1eTTD5A8+ZM7SmA=";
+    url = "https://files.pythonhosted.org/packages/6b/52/ad8da758c96299c27ac1f0345979f9202a517c4f18ef6a1e9b7a781d6948/intel_openmp-2026.0.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+    hash = "sha256-xGBcY4QNbcAYhhD50NzFrmxzyYj5jDbEvYB7y9Dec7s=";
   };
 
   dependencies = [
-    (callPackage ./intel-cmplr-lib-ur.nix { }) # ==2025.3.0
+    (callPackage ./intel-cmplr-lib-ur.nix { }) # ==2026.0.0
   ];
 
   # Add dependency libraries to runtime path of mkl libs. Do this

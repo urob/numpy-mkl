@@ -7,12 +7,12 @@
 }:
 buildPythonPackage rec {
   pname = "tbb";
-  version = "2022.3.0";
+  version = "2023.0.0";
   format = "wheel";
 
   src = fetchurl {
-    url = "https://files.pythonhosted.org/packages/e3/9e/b7f1f7af53580e4e8cf39cf51b14c8e295d767b3ae9d78b5007d6058cfc8/tbb-2022.3.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-    hash = "sha256-p+Eiy5im+II5QDQaoyPc3/+nfjZxKiKhrjp2Qw+p9BI=";
+    url = "https://files.pythonhosted.org/packages/aa/d2/9a994ce9b18182b04783282eba77e236d23919acf42a886d72fe14fc78a4/tbb-2023.0.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+    hash = "sha256-SC9XZWOG6hS5bo2jaz/MTNiAg07w8yi6Ceji48Y5KF4=";
   };
 
   dependencies = [

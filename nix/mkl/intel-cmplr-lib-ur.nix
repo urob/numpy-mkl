@@ -7,16 +7,16 @@
 }:
 buildPythonPackage rec {
   pname = "intel-cmplr-lib-ur";
-  version = "2025.3.0";
+  version = "2026.0.0";
   format = "wheel";
 
   src = fetchurl {
-    url = "https://files.pythonhosted.org/packages/71/33/94785f0575f7319e57788169ef15e504c1e9e9744f04e0b9e00390e1f533/intel_cmplr_lib_ur-2025.3.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-    hash = "sha256-NeRXZJB8EACQ2Ny3XU0xqn3DMOXy2IcDLJ60fT4p1D4=";
+    url = "https://files.pythonhosted.org/packages/15/6d/b981353d0ba8dc6d54510aba97f67ddce3872a693f41841bb77a120f512c/intel_cmplr_lib_ur-2026.0.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+    hash = "sha256-X7dSk+fx+Dd82jqsRPTnwMHdOOKB/s76dsoUWTgnY6Q=";
   };
 
   dependencies = [
-    (callPackage ./umf.nix { }) # ==1.0.*
+    (callPackage ./umf.nix { }) # ==1.1.*
   ];
 
   # Add dependency libraries to runtime path of mkl libs. Do this

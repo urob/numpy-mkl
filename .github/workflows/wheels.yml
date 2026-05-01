@@ -148,11 +148,13 @@ jobs:
         working-directory: ${{ env.SRC_DIR }}
         run: |
           # Pin runtime library to the exact version used for compiling.
+          MAJOR=$(echo "$MKL_VERSION" | cut -d. -f1)
           if [[ "${{ inputs.name }}" == "mkl-service" ]]; then
             # MKLROOT must be set, even with --no-sync.
-            MKLROOT="${{ env.MKL_DIR }}" uv add --no-sync mkl>="${{ env.MKL_VERSION }}"
+            MKLROOT="${{ env.MKL_DIR }}" uv add --no-sync "mkl>=${MKL_VERSION},<$((MAJOR + 1)).0.0"
           else
-            uv add --no-sync mkl>="${{ env.MKL_VERSION }}" mkl-service
+            uv add --no-sync mkl=="${{ env.MKL_VERSION }}" mkl-service
+            uv add --no-sync "mkl>=${MKL_VERSION},<$((MAJOR + 1)).0.0" mkl-service
           fi
 
       - name: Add MKL licence

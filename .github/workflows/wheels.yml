@@ -111,11 +111,14 @@ jobs:
 
       - name: Install MKL libraries
         run: |
+          # Prevent using future MKL versions, which may not be backward compatible.
+          RELEASE_YEAR=$(git -C "${{ env.SRC_DIR }}" log -1 --format=%cd --date=format:%Y)
+
           uv venv "${{ env.MKL_DIR }}"
           source "${{ env.MKL_DIR }}/${{ env.venv_bin }}"/activate
-          uv pip install mkl-devel
+          uv pip install "mkl-devel<$((RELEASE_YEAR + 1)).0.0"
 
-          # Get MKL version.
+          # Get exact MKL version.
           echo "MKL_VERSION=$(uv pip show mkl | grep '^Version' | sed 's/Version: //')" \
               >>$GITHUB_ENV
 
@@ -153,7 +156,6 @@ jobs:
             # MKLROOT must be set, even with --no-sync.
             MKLROOT="${{ env.MKL_DIR }}" uv add --no-sync "mkl>=${MKL_VERSION},<$((MAJOR + 1)).0.0"
           else
-            uv add --no-sync mkl=="${{ env.MKL_VERSION }}" mkl-service
             uv add --no-sync "mkl>=${MKL_VERSION},<$((MAJOR + 1)).0.0" mkl-service
           fi
 

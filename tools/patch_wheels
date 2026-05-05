@@ -1,0 +1,210 @@
+#!/usr/bin/env python
+"""Patch existing wheels to add upper bounds on the mkl dependency.
+
+For each numpy/scipy wheel that only has a lower bound on mkl (e.g. mkl>=2025.3.1),
+this script adds a matching upper bound (e.g. <2026.0.0) so that pip cannot
+resolve an incompatible mkl major version at install time.
+
+After patching and re-uploading, run `tools/make_index2` for each package
+(numpy, scipy) to regenerate the index with the updated sha256 digests.
+
+Usage:
+    tools/patch_wheels [--dry-run] [--packages numpy scipy] [--token TOKEN]
+"""
+
+import argparse
+import base64
+import csv
+import hashlib
+import io
+import json
+import re
+import shutil
+import subprocess
+import tempfile
+import zipfile
+from pathlib import Path
+
+
+def get_releases(token=None):
+    cmd = ['gh', 'api', 'repos/urob/numpy-mkl/releases', '--paginate']
+    if token:
+        cmd += ['--header', f'Authorization: Bearer {token}']
+    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    return json.loads(result.stdout)
+
+
+def parse_mkl_req(metadata):
+    """Return (line, lower_ver, has_upper) for the mkl Requires-Dist line."""
+    for line in metadata.splitlines():
+        if not re.match(r'^Requires-Dist:\s*mkl\b', line):
+            continue
+        has_upper = bool(re.search(r'[<(]|==', line.split('mkl', 1)[1]))
+        m = re.search(r'>=\s*(\d{4}\.\S+?)(?:[,)]|$)', line)
+        lower = m.group(1).rstrip(',)') if m else None
+        return line, lower, has_upper
+    return None, None, None
+
+
+def add_upper_bound(req_line, lower_ver):
+    """Return req_line with an upper bound added, e.g. mkl>=2025.3.1,<2026.0.0."""
+    year = int(lower_ver.split('.')[0])
+    upper = f'<{year + 1}.0.0'
+    # Insert upper bound after the existing spec inside parens, or append it.
+    if '(' in req_line:
+        return re.sub(r'(>=\S+?)(\))', rf'\1,{upper}\2', req_line)
+    return req_line + f',{upper}'
+
+
+def sha256_b64(data: bytes) -> str:
+    digest = hashlib.sha256(data).digest()
+    return base64.urlsafe_b64encode(digest).rstrip(b'=').decode()
+
+
+def patch_wheel(src: Path, dst: Path) -> bool:
+    """Write a patched copy of src to dst. Returns True if any change was made."""
+    patched_metadata: dict[str, bytes] = {}
+
+    with zipfile.ZipFile(src, 'r') as zin:
+        names = zin.namelist()
+
+        metadata_name = next((n for n in names if n.endswith('/METADATA')), None)
+        record_name = next((n for n in names if n.endswith('/RECORD')), None)
+
+        if not metadata_name:
+            return False
+
+        metadata = zin.read(metadata_name).decode('utf-8')
+        req_line, lower_ver, has_upper = parse_mkl_req(metadata)
+
+        if not req_line or has_upper or not lower_ver:
+            return False
+
+        new_req = add_upper_bound(req_line, lower_ver)
+        print(f'    {req_line.strip()}')
+        print(f' -> {new_req.strip()}')
+
+        new_metadata = metadata.replace(req_line, new_req).encode('utf-8')
+        patched_metadata[metadata_name] = new_metadata
+
+        # Update RECORD with new sha256/size for METADATA.
+        if record_name:
+            record_bytes = zin.read(record_name)
+            rows = list(csv.reader(io.StringIO(record_bytes.decode('utf-8'))))
+            new_rows = []
+            for row in rows:
+                if row and row[0] == metadata_name:
+                    new_rows.append([
+                        metadata_name,
+                        f'sha256={sha256_b64(new_metadata)}',
+                        str(len(new_metadata)),
+                    ])
+                else:
+                    new_rows.append(row)
+            buf = io.StringIO()
+            csv.writer(buf, lineterminator='\n').writerows(new_rows)
+            patched_metadata[record_name] = buf.getvalue().encode('utf-8')
+
+        with zipfile.ZipFile(dst, 'w', compression=zipfile.ZIP_DEFLATED) as zout:
+            for item in zin.infolist():
+                data = patched_metadata.get(item.filename, zin.read(item.filename))
+                zout.writestr(item, data)
+
+    return True
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Patch wheels to add mkl upper bounds')
+    parser.add_argument('--dry-run', action='store_true', help='Show what would change, no uploads')
+    parser.add_argument('--release-tag', default='patched-mkl-bounds',
+                        help='Tag for the new release to upload patched wheels to '
+                             '(default: patched-mkl-bounds)')
+    parser.add_argument('--notes-file', metavar='FILE',
+                        help='Markdown file to use as release notes')
+    parser.add_argument('--packages', nargs='+', default=['numpy', 'scipy'],
+                        help='Packages to patch (default: numpy scipy)')
+    parser.add_argument('--version', metavar='PREFIX',
+                        help='Only patch wheels whose version starts with PREFIX (e.g. 2.4)')
+    parser.add_argument('--token', help='GitHub token for authentication')
+    args = parser.parse_args()
+
+    packages = {p.replace('-', '_') for p in args.packages}
+
+    releases = get_releases(args.token)
+    needs_reindex: set[str] = set()
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp = Path(tmpdir)
+        patched_dir = tmp / 'patched'
+        patched_dir.mkdir()
+
+        for release in releases:
+            tag = release['tag_name']
+            if tag == args.release_tag:
+                continue  # Skip the target release itself if it already exists.
+            assets = [
+                a for a in release['assets']
+                if a['name'].endswith('.whl')
+                and any(a['name'].startswith(p) for p in packages)
+                and (not args.version or a['name'].split('-')[1].startswith(args.version))
+            ]
+            if not assets:
+                continue
+
+            print(f'\n{tag}:')
+
+            for asset in assets:
+                name = asset['name']
+                src = tmp / name
+                dst = patched_dir / name
+
+                subprocess.run(
+                    ['gh', 'release', 'download', tag, '--pattern', name, '-D', str(tmp)],
+                    check=True, capture_output=True,
+                )
+
+                changed = patch_wheel(src, dst)
+                src.unlink(missing_ok=True)
+
+                if not changed:
+                    print(f'  {name}: already bounded, skipping')
+                    dst.unlink(missing_ok=True)
+                    continue
+
+                pkg_name = name.split('-')[0]  # numpy or scipy
+                needs_reindex.add(pkg_name)
+                print(f'  {name}: patched')
+
+        if not needs_reindex:
+            print('\nNo wheels needed patching.')
+            return
+
+        if args.dry_run:
+            n = sum(1 for _ in patched_dir.glob('*.whl'))
+            print(f'\nDry-run complete: {n} wheel(s) would be uploaded to release '
+                  f'"{args.release_tag}".')
+            return
+
+        # Upload all patched wheels to a single new release.
+        patched_wheels = list(patched_dir.glob('*.whl'))
+        print(f'\nCreating release "{args.release_tag}" with {len(patched_wheels)} wheel(s)...')
+        notes_args = (
+            ['--notes-file', args.notes_file] if args.notes_file
+            else ['--notes', 'Patched wheels: added upper bound on mkl dependency.']
+        )
+        subprocess.run(
+            ['gh', 'release', 'create', args.release_tag,
+             '--title', args.release_tag,
+             *notes_args,
+             *[str(w) for w in patched_wheels]],
+            check=True,
+        )
+        print('Done.')
+
+        print('\nAll wheels uploaded. Regenerate the index with:')
+        for pkg in sorted(needs_reindex):
+            print(f'  uv run tools/make_index2 pypi/{pkg}/index.html --token <TOKEN>')
+
+
+if __name__ == '__main__':
+    main()

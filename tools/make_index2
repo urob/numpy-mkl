@@ -106,17 +106,17 @@ class Wheels:
         return headers
 
     def get_wheels(self, token=None):
+        # GitHub returns releases newest-first; first occurrence of a filename wins.
+        seen: set[str] = set()
         wheels = []
         for release in self.fetch_releases(token=token):
             if release['draft']:
                 continue
-            assets = release['assets']
-            filtered = [
-                a
-                for a in assets
-                if a['name'].startswith(self.package) and a['name'].endswith('.whl')
-            ]
-            wheels += [Wheel(a) for a in filtered]
+            for a in release['assets']:
+                if a['name'].startswith(self.package) and a['name'].endswith('.whl'):
+                    if a['name'] not in seen:
+                        seen.add(a['name'])
+                        wheels.append(Wheel(a))
         return sorted(wheels, key=lambda w: w.name)
 
 

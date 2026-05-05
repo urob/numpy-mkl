@@ -6,11 +6,11 @@ on:
       name:
         required: true
         type: string
-        description: "Package to build (numpy, scipy)"
+        description: "Package to build (numpy, scipy, mkl-service)"
       repo:
         required: true
         type: string
-        description: "Repo to build (numpy, scipy)"
+        description: "Source repo (numpy/numpy, scipy/scipy, IntelPython/mkl-service)"
       force-build:
         required: false
         type: boolean
@@ -64,7 +64,7 @@ jobs:
     strategy:
       matrix: ${{ fromJson(needs.meta.outputs.matrix) }}
       fail-fast: false
-    continue-on-error: true
+    continue-on-error: true # Release all successful builds, even if some platforms fail.
     defaults:
       run:
         shell: bash

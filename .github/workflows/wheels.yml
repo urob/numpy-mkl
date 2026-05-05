@@ -249,7 +249,7 @@ jobs:
         run: |
           mkdir -p wheelhouse
           uvx delvewheel repair "${{ env.SRC_DIR }}"/dist/*.whl -w wheelhouse \
-              --exclude mkl_rt.2.dll --exclude libsf_error_state.dll
+              --exclude mkl_rt.*.dll --exclude libsf_error_state.dll
         if: runner.os == 'windows'
 
       - name: Run tests

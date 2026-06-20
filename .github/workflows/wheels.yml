@@ -273,7 +273,7 @@ jobs:
               uv pip install pytest pytest-xdist threadpoolctl pooch hypothesis
               # uv pip install -r "${{ env.SRC_DIR }}"/requirements/test.txt \
               #     --index https://urob.github.io/numpy-mkl
-              python -c 'import sys; import scipy; sys.exit(not scipy.test())'
+              python tools/scipy_tests.py
               ;;
 
             mkl-service)

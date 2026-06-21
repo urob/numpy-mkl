@@ -563,6 +563,24 @@
   "numpy-2.4.6-cp314-windows": {
     "mkl": "2026.0.0"
   },
+  "numpy-2.5.0-cp312-linux": {
+    "mkl": "2026.0.0"
+  },
+  "numpy-2.5.0-cp312-windows": {
+    "mkl": "2026.0.0"
+  },
+  "numpy-2.5.0-cp313-linux": {
+    "mkl": "2026.0.0"
+  },
+  "numpy-2.5.0-cp313-windows": {
+    "mkl": "2026.0.0"
+  },
+  "numpy-2.5.0-cp314-linux": {
+    "mkl": "2026.0.0"
+  },
+  "numpy-2.5.0-cp314-windows": {
+    "mkl": "2026.0.0"
+  },
   "scipy-1.15.2-cp310-linux": {
     "mkl": "2025.1.0"
   },

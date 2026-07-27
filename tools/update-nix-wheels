@@ -53,14 +53,19 @@ def sync_python(file, version):
     file.write_text(flake)
 
 
-def compile_args(python, requirements):
+def index_url(index):
+    """Accept either an index url or a checkout of the `pypi` branch."""
+    return path.as_uri() if (path := Path(index)).is_dir() else index
+
+
+def compile_args(python, requirements, index):
     return [
         'uv',
         'pip',
         'compile',
         str(requirements),
         '--index-url',
-        INDEX,
+        index,
         '--python-version',
         python,
         '--python-platform',
@@ -72,9 +77,10 @@ def compile_args(python, requirements):
 class Resolution:
     """One internally consistent set of wheels for a single python version."""
 
-    def __init__(self, python, workdir):
+    def __init__(self, python, workdir, index):
         self.python = python
         self.workdir = workdir
+        self.index = index
         self.requirements = workdir / 'requirements.in'
         self.requirements.write_text('\n'.join(PACKAGES) + '\n')
 
@@ -91,7 +97,7 @@ class Resolution:
         # The filename is prescribed by uv, so give each python its own dir.
         lock = self.workdir / f'py{self.python}' / 'pylock.toml'
         lock.parent.mkdir(parents=True, exist_ok=True)
-        args = [*compile_args(self.python, self.requirements), '--format']
+        args = [*compile_args(self.python, self.requirements, self.index), '--format']
         result = self.run([*args, 'pylock.toml', '-o', str(lock)])
         if result is None:
             return None
@@ -108,7 +114,10 @@ class Resolution:
 
     def fetch_dependencies(self, wheels):
         """Invert uv's `# via` annotations into a forward dependency graph."""
-        args = [*compile_args(self.python, self.requirements), '--annotation-style']
+        args = [
+            *compile_args(self.python, self.requirements, self.index),
+            '--annotation-style',
+        ]
         result = self.run([*args, 'line'])
         if result is None:
             raise ResolutionError(f'Annotated resolution failed for {self.python}')
@@ -238,6 +247,13 @@ if __name__ == '__main__':
         '-c', '--config', required=True, type=str, help='ci targets config'
     )
     parser.add_argument(
+        '-i',
+        '--index',
+        type=str,
+        default=INDEX,
+        help='package index url, or a checkout of the `pypi` branch',
+    )
+    parser.add_argument(
         '-f',
         '--flake',
         type=str,
@@ -253,10 +269,12 @@ if __name__ == '__main__':
 
     # Resolve everything before writing, so that a python without wheels or an
     # inconsistent graph leaves the tree untouched.
+    index = index_url(args.index)
+
     with TemporaryDirectory() as tmp:
         resolutions = {}
         for python in config['defaults']['python_versions']:
-            if resolved := Resolution(python, Path(tmp)).resolve():
+            if resolved := Resolution(python, Path(tmp), index).resolve():
                 resolutions[python] = resolved
             else:
                 print(f'Skipping python {python}: no wheels available')

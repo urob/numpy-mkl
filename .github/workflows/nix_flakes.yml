@@ -42,10 +42,20 @@ jobs:
         run: |
           nix flake update
 
+      - name: Fetch package index
+        run: |
+          # Resolve against the `pypi` branch rather than the pages site it is
+          # served from: the index is pushed during the wheel build, but its
+          # deployment finishes independently and can lag by a minute. Clone
+          # outside the work tree, so the index is never committed to main.
+          git clone --quiet --depth 1 --branch pypi \
+              "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" "$RUNNER_TEMP/index"
+
       - name: Update wheels
         run: |
           uv run tools/update-nix-wheels templates/dependency.nix \
-              -d nix -c ci-targets.yaml -f templates/nix/flake.nix
+              -d nix -c ci-targets.yaml -f templates/nix/flake.nix \
+              --index "$RUNNER_TEMP/index"
 
       - name: Verify derivations
         run: |

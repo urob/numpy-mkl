@@ -1,24 +1,28 @@
-# Do not edit, generated automatically by <maintain-nix-deps.py>.
+# Do not edit, generated automatically by <tools/update-nix-wheels>.
 {
   buildPythonPackage,
   callPackage,
   fetchurl,
   lib,
+  python,
 }:
-buildPythonPackage rec {
+let
   pname = "mkl";
-  version = "2026.1.0";
+  wheel = (import ../lib.nix { inherit lib; }).wheelFor { inherit pname python; };
+in
+buildPythonPackage rec {
+  inherit pname;
+  inherit (wheel) version;
   format = "wheel";
 
   src = fetchurl {
-    url = "https://files.pythonhosted.org/packages/61/da/4921e17b1f455f7fed30d5cc0964f3289eee6a6cb03cdf7d5e20c14bd025/mkl-2026.1.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-    hash = "sha256-TVomRJgYqK69SyqvaykYMeaR+c90sVLfSbmc9Iu9U2A=";
+    inherit (wheel) url hash;
   };
 
   dependencies = [
-    (callPackage ./onemkl-license.nix { }) # ==2026.1.0
-    (callPackage ./intel-openmp.nix { }) # <2027,>=2025
-    (callPackage ./tbb.nix { }) # ==2023.*
+    (callPackage ./intel-openmp.nix { })
+    (callPackage ./onemkl-license.nix { })
+    (callPackage ./tbb.nix { })
   ];
 
   # Add dependency libraries to runtime path of mkl libs. Do this
@@ -34,5 +38,6 @@ buildPythonPackage rec {
     description = "Intel® oneAPI Math Kernel Library";
     homepage = "https://pypi.org/project/mkl/";
     license = "Intel Simplified Software License";
+    platforms = [ "x86_64-linux" ];
   };
 }

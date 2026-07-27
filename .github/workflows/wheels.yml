@@ -181,9 +181,9 @@ jobs:
                   --checksum 6004DF17818F5A6DBF19CB335CC92702 pkgconfiglite
               ;;&
             scipy)
-              # Gcc is required for scipy.
-              choco install rtools -y --no-progress --force --version=4.0.0.20220206
-              echo "c:\rtools40\ucrt64\bin;" >>$GITHUB_PATH
+              # Gcc is required for scipy. Rtools45 (gcc 14) matches upstream's wheel builder.
+              choco install rtools -y --no-progress --force --version=4.5.6768
+              echo "c:\rtools45\ucrt64\bin;" >>$GITHUB_PATH
               ;;&
           esac
         if: runner.os == 'windows'

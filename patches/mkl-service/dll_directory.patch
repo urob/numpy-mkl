@@ -14,13 +14,14 @@ index c0eb2ae..1a792b6 100644
  
  
  class RTLD_for_MKL:
-@@ -42,6 +45,21 @@ class RTLD_for_MKL:
+@@ -42,6 +45,22 @@ class RTLD_for_MKL:
              sys.setdlopenflags(self.saved_rtld | ctypes.RTLD_GLOBAL)
          except AttributeError:
              pass
 +
 +        with contextlib.suppress(
-+            AttributeError, FileNotFoundError, StopIteration, PackageNotFoundError
++            AttributeError, FileNotFoundError, StopIteration, PackageNotFoundError,
++            TypeError,
 +        ):
 +            if os.name == "nt":
 +                # Add MKL library path to DLL search path on Windows.

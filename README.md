@@ -8,13 +8,13 @@ This repository provides binary wheels for NumPy and SciPy, linked to Intel's hi
 [oneAPI Math Kernel
 Library](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html) for Intel CPUs.
 The wheels are accessible through a custom Python Package Index (PyPI) and can be installed with
-`pip` or `uv`.
+`pip`, `uv`, or `nix`.
 
 ## Installation
 
 MKL-accelerated wheels are available for 64-bit versions of Linux and Windows. If using one of the
 recommended package manager below, there are no other prerequisites; all dependencies — including
-Python if using uv or Nix — are automatically installed by the package manager.
+Python itself when using uv or Nix — are automatically installed by the package manager.
 
 **uv**
 
@@ -27,14 +27,14 @@ uv add numpy scipy --index https://urob.github.io/numpy-mkl
 **pip**
 
 ```sh
-# Install globally or into active venv.
+# Install globally or into an active venv.
 pip install numpy scipy --index-url https://urob.github.io/numpy-mkl
 ```
 
 **nix**
 
 ```sh
-# Create and run virtual devshell using Nix.
+# Create and run a virtual devshell using Nix.
 nix flake init --template github:urob/numpy-mkl
 nix develop .
 ```

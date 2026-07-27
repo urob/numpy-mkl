@@ -13,7 +13,6 @@ jobs:
       name: mkl-service
       repo: IntelPython/mkl-service
       force-build: true
-      manylinux: true
 
   numpy:
     uses: ./.github/workflows/wheels.yml
@@ -21,7 +20,6 @@ jobs:
       name: numpy
       repo: numpy/numpy
       force-build: true
-      manylinux: true
     needs: mkl-service
 
   scipy:
@@ -30,5 +28,4 @@ jobs:
       name: scipy
       repo: scipy/scipy
       force-build: true
-      manylinux: true
     needs: [mkl-service, numpy]

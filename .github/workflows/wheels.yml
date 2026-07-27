@@ -15,10 +15,6 @@ on:
         required: false
         type: boolean
         description: "Force build even if wheels exist"
-      manylinux:
-        required: false
-        type: boolean
-        description: "Build Linux wheels in manylinux container"
       version:
         required: false
         type: string

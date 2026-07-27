@@ -14,4 +14,3 @@ jobs:
       repo: IntelPython/mkl-service
       force-build: true
       version: 2.6.1
-      manylinux: true

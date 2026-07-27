@@ -19,10 +19,28 @@ REQUESTS_TIMEOUT = 45
 PYPY = 'https://pypi.org/pypi/{package}/json'
 WHEEL = r'/download/(?P<release>.*?)/(?P<name>.*?\.whl)'
 
+# Matches the pythonXYZ attribute selecting the interpreter in a flake.
+PY_ATTR = re.compile(r'\bpython3\d+\b')
+
+
+def py_version(pyx):
+    """Convert a wheel tag such as `cp314` into `3.14`."""
+    return f'{pyx[2]}.{pyx[3:]}'
+
+
+def sync_python(file, version):
+    """Point the pythonXYZ attribute of a flake at the given python version."""
+    flake, count = PY_ATTR.subn('python' + version.replace('.', ''), file.read_text())
+    if count != 1:
+        raise PythonAttrError(f'Expected one python attribute in {file}, got {count}')
+    file.write_text(flake)
+
 
 class Releases:
     def __init__(self):
-        self.url = 'https://api.github.com/repos/urob/numpy-mkl/releases'
+        # Fetch the maximum page size, so that packages released infrequently
+        # don't drop off the end of the (date sorted) first page.
+        self.url = 'https://api.github.com/repos/urob/numpy-mkl/releases?per_page=100'
 
     def fetch_releases(self, token=None):
         headers = self.headers(token=token)
@@ -86,6 +104,9 @@ class UpdateFlake:
         latest = max(self.wheels, key=lambda _: _.version)
         return latest.version
 
+    def python_versions(self, version):
+        return {py_version(_.pyx) for _ in self.wheels if _.version == version}
+
     def fetch_urls(self, version):
         urls = {}
         for wheel in self.wheels:
@@ -104,7 +125,7 @@ class UpdateFlake:
         out = '  wheel =\n   '
         for pyx_, url in self.fetch_urls(version).items():
             m = re.search(WHEEL, url['url'])
-            pyx = pyx_[2] + '.' + pyx_[3:]
+            pyx = py_version(pyx_)
             out += f' if pyVersion == "{pyx}" then\n'
             out += scheme.format(release=m['release'], name=m['name'], hash=url['hash'])
             out += '\n    else'
@@ -144,16 +165,58 @@ class FetchReleaseDataError(Exception):
     pass
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Create nix package from PyPI package')
+class PythonAttrError(Exception):
+    pass
 
-    parser.add_argument('-d', '--nixdir', type=str, help='flake template')
+
+class SharedPythonError(Exception):
+    pass
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Link nix packages to latest wheels')
+
+    parser.add_argument('-d', '--nixdir', type=str, help='directory with nix packages')
+    parser.add_argument(
+        '-f',
+        '--flake',
+        type=str,
+        action='append',
+        default=[],
+        help='flake to sync the python version with (repeatable)',
+    )
+    parser.add_argument(
+        '-p',
+        '--python',
+        type=str,
+        default='',
+        help='space separated python versions available in nixpkgs',
+    )
+    parser.add_argument('-t', '--token', type=str, help='github api token')
 
     args = parser.parse_args()
     nixdir = Path(args.nixdir)
 
-    releases = Releases().fetch_releases()
+    releases = Releases().fetch_releases(token=args.token)
 
+    # Resolve everything before writing, so that an unsatisfiable python
+    # version leaves the tree untouched.
+    flakes, shared = {}, None
     for package in PACKAGES:
         flake = UpdateFlake(package, releases)
-        flake.link_latest(nixdir)
+        flakes[flake] = version = flake.latest_version()
+        versions = flake.python_versions(version)
+        shared = versions if shared is None else shared & versions
+
+    if available := set(args.python.split()):
+        shared &= available
+    if not shared:
+        raise SharedPythonError('No python version supported by all packages')
+    python = max(shared, key=Version)
+
+    for flake, version in flakes.items():
+        flake.link_latest(nixdir, version=version)
+    for file in args.flake:
+        sync_python(Path(file), python)
+
+    print(python)

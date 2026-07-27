@@ -1,0 +1,118 @@
+name: Update nix derivations
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - Build wheels
+      - Rebuild all
+      - Rebuild mkl-service
+      - Rebuild numpy
+      - Rebuild scipy
+    types: [completed]
+
+permissions:
+  contents: write
+
+jobs:
+  nix:
+    if: github.repository == 'urob/numpy-mkl'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          # Explicitly set ref, as workflow_run checks out the triggering commit.
+          ref: main
+          persist-credentials: true  # Need credentials to push.
+
+      - name: Set up nix
+        uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342 # v31.11.0
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Set up python
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version-file: "pyproject.toml"
+
+      - name: Update nixpkgs
+        run: |
+          nix flake update
+
+      - name: Fetch python versions provided by nixpkgs
+        run: |
+          # Read the revision from the lock file. Resolving `nixpkgs` directly
+          # would consult the flake registry instead of our own pin.
+          rev=$(jq -r '.nodes.nixpkgs.locked.rev' flake.lock)
+
+          # Removed interpreters linger as throwing aliases, so probe each
+          # attribute rather than trusting the attribute names alone.
+          pythons=$(nix eval --raw \
+              "github:NixOS/nixpkgs/$rev#legacyPackages.x86_64-linux" --apply '
+            pkgs:
+            let
+              names = builtins.filter (n: builtins.match "python3[0-9]+" n != null) (
+                builtins.attrNames pkgs
+              );
+              version =
+                name:
+                let
+                  try = builtins.tryEval (builtins.getAttr name pkgs).pythonVersion;
+                in
+                if try.success then try.value else "";
+            in
+            builtins.concatStringsSep " " (builtins.filter (v: v != "") (map version names))
+          ')
+
+          echo "Provided by nixpkgs: $pythons"
+          echo "pythons=$pythons" >>$GITHUB_ENV
+
+      - name: Update wheels
+        run: |
+          python=$(uv run tools/updated-nix-flakes -d nix \
+              -f flake.nix -f templates/nix/flake.nix \
+              --python "$pythons" --token "${{ secrets.GITHUB_TOKEN }}")
+          echo "Selected python: $python"
+          echo "python=$python" >>$GITHUB_ENV
+
+      - name: Update mkl dependencies
+        run: |
+          uv run tools/make-nix-mkl-deps templates/dependency.nix -o nix/mkl
+
+      - name: Verify devshell
+        run: |
+          # Stage the changes, as nix ignores untracked files in a git tree.
+          git add -A
+
+          # The template ships without a lock file, so just check that it parses.
+          nix-instantiate --parse templates/nix/flake.nix >/dev/null
+
+          version=$(nix develop -c python -c \
+              'import sys; print("%d.%d" % sys.version_info[:2])')
+          if [[ "$version" != "$python" ]]; then
+              echo "::error::Devshell provides python $version, expected $python"
+              exit 1
+          fi
+
+          # Numpy only warns when mkl-service is missing, so import it directly.
+          # Solving an eigenproblem confirms mkl itself is loadable.
+          nix develop -c python -c '
+          import mkl, numpy, scipy.linalg
+          scipy.linalg.eigh(numpy.eye(4))
+          print(numpy.__version__, scipy.__version__, mkl.get_version_string())
+          '
+
+      - name: Commit nix derivations
+        run: |
+          if [[ -z "$(git status --porcelain)" ]]; then
+              echo "No changes to commit"
+              exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .
+          git commit -m "ci: Update nix derivations"
+          git push origin HEAD:main

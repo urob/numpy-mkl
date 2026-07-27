@@ -13,4 +13,4 @@ jobs:
       name: scipy
       repo: scipy/scipy
       force-build: true
-      # version: 2.1.3
+      # version: 1.18.0

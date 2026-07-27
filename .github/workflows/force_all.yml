@@ -1,4 +1,4 @@
-name: Build manylinux wheels
+name: Rebuild all
 
 on:
   workflow_dispatch:

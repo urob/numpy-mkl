@@ -13,4 +13,4 @@ jobs:
       name: mkl-service
       repo: IntelPython/mkl-service
       force-build: true
-      version: 2.6.1
+      # version: 2.8.0

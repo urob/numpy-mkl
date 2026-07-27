@@ -14,27 +14,27 @@ let
   wheel =
     if pyVersion == "3.11" then
       {
-        release = "0.1.4";
-        name = "mkl_service-2.6.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl";
-        hash = "sha256-Y5cPfHE/51QcKkQVdAKxu7/BC+/dM8odEAH/KOZ7QdI=";
+        release = "0.3.8";
+        name = "mkl_service-2.8.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl";
+        hash = "sha256-xvki8kTp2uAbXbQhvfWN99qO+3AezIensywQGKA/i/A=";
       }
     else if pyVersion == "3.12" then
       {
-        release = "0.1.4";
-        name = "mkl_service-2.6.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl";
-        hash = "sha256-8Uo+0m1Fl1clw2QzSj7Hyx2t9JrN+46y+ugXkag4x6o=";
+        release = "0.3.8";
+        name = "mkl_service-2.8.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl";
+        hash = "sha256-bfyGYw+4Q1Fuh/cjZJY282R7kZUi7QDwDUHi0yR5x9U=";
       }
     else if pyVersion == "3.13" then
       {
-        release = "0.1.4";
-        name = "mkl_service-2.6.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl";
-        hash = "sha256-HdzTEaVZMIo2bKMJKBWfvAQd9rsKgR415HDH7Ai3YTs=";
+        release = "0.3.8";
+        name = "mkl_service-2.8.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl";
+        hash = "sha256-l2dMmGy/m4CIIF3OX7ZA/X916uDdBumq0F0qKJfXPOY=";
       }
     else if pyVersion == "3.14" then
       {
-        release = "0.1.4";
-        name = "mkl_service-2.6.1-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl";
-        hash = "sha256-KmQMADrlGeormDvLIhOP1svBgNEoaHIUKmAVz9fNMkI=";
+        release = "0.3.8";
+        name = "mkl_service-2.8.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl";
+        hash = "sha256-XK+8A0s+rB/nZT/CQnoLtbGlQ9GeHV1tCewLcwDluNU=";
       }
     else
       {
@@ -57,7 +57,7 @@ let
 in
 buildPythonPackage rec {
   pname = "mkl-service";
-  version = "2.6.1";
+  version = "2.8.0";
   format = "wheel";
 
   src = fetchurl {

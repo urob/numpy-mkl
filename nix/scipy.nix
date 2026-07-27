@@ -14,29 +14,23 @@ let
 
   # <<< Automatically generated, do not edit.
   wheel =
-    if pyVersion == "3.11" then
+    if pyVersion == "3.12" then
       {
-        release = "0.1.9";
-        name = "scipy-1.17.1-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
-        hash = "sha256-cqjIQxI8QdFUMlgBVf9/tO+dAVfW6BAGn++thBGpR3E=";
-      }
-    else if pyVersion == "3.12" then
-      {
-        release = "0.1.9";
-        name = "scipy-1.17.1-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
-        hash = "sha256-OJ8C4xgsq3BEgA1g3pQqhfUV+xQc6G9YiGAGGAQMhkE=";
+        release = "0.3.5";
+        name = "scipy-1.18.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
+        hash = "sha256-wzGxurzBnCSdG/C0yq+a1FtQqTCtFkm6zPJAuyESD+Q=";
       }
     else if pyVersion == "3.13" then
       {
-        release = "0.1.9";
-        name = "scipy-1.17.1-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
-        hash = "sha256-GTl/IljuHfJxC8cCwD12PrFzXuwhfXX8dR19kZKuNTI=";
+        release = "0.3.4";
+        name = "scipy-1.18.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
+        hash = "sha256-565BV85G06+5ekpcOZjJlzLZmvSeC8XRHz0S8TWzdDQ=";
       }
     else if pyVersion == "3.14" then
       {
-        release = "0.1.9";
-        name = "scipy-1.17.1-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
-        hash = "sha256-d5bPAf+4WI4PFCOJkcgtfyM3YY9thHPiQFjpXRMFXFs=";
+        release = "0.3.4";
+        name = "scipy-1.18.0-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
+        hash = "sha256-6tc2fu8Tgv9npPI4dZss4PpRT571yaKaS0dLN1IyXM8=";
       }
     else
       {
@@ -62,7 +56,7 @@ let
 in
 buildPythonPackage rec {
   pname = "scipy";
-  version = "1.17.1";
+  version = "1.18.0";
   format = "wheel";
 
   src = fetchurl {

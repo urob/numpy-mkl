@@ -13,29 +13,23 @@ let
 
   # <<< Automatically generated, do not edit.
   wheel =
-    if pyVersion == "3.11" then
+    if pyVersion == "3.12" then
       {
-        release = "0.1.11";
-        name = "numpy-2.4.4-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
-        hash = "sha256-YdJq881EKeiJpM2rJa8r9zzQwKXkBRCzfkCWUnLycSU=";
-      }
-    else if pyVersion == "3.12" then
-      {
-        release = "0.1.11";
-        name = "numpy-2.4.4-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
-        hash = "sha256-SV27v3jcOTEDmjlNE25peSNN01Syf6Cg1wH+5NtGCo8=";
+        release = "0.3.7";
+        name = "numpy-2.5.1-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
+        hash = "sha256-rawfS+cSgxSs/ybgalia0RdGvuYcK73MODpp1YYOJaQ=";
       }
     else if pyVersion == "3.13" then
       {
-        release = "0.1.11";
-        name = "numpy-2.4.4-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
-        hash = "sha256-T37NXLBsN07ShGIeptdE7d71zPfkLf6YujSC3rospts=";
+        release = "0.3.7";
+        name = "numpy-2.5.1-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
+        hash = "sha256-P0KZ+SIiX/6DuWRx/Iya2SjBieGGCP6t9DucOp0L4vs=";
       }
     else if pyVersion == "3.14" then
       {
-        release = "0.1.11";
-        name = "numpy-2.4.4-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
-        hash = "sha256-ui49SKPfKjLxcWRXTg6aba+E+aUjpSKFEhrOnUJm0A0=";
+        release = "0.3.7";
+        name = "numpy-2.5.1-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
+        hash = "sha256-1uZomlYo5PNgMG9aVchQBsNIoA56bA6yveapGDKFU0U=";
       }
     else
       {
@@ -61,7 +55,7 @@ let
 in
 buildPythonPackage rec {
   pname = "numpy";
-  version = "2.4.4";
+  version = "2.5.1";
   format = "wheel";
 
   src = fetchurl {

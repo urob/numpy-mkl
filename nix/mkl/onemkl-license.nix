@@ -7,12 +7,12 @@
 }:
 buildPythonPackage rec {
   pname = "onemkl-license";
-  version = "2026.0.0";
+  version = "2026.1.0";
   format = "wheel";
 
   src = fetchurl {
-    url = "https://files.pythonhosted.org/packages/cc/fa/7c9af1e1fcea378257958355f7f2b80d6cc50a36ceebec0ad2fa9bd6b538/onemkl_license-2026.0.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-    hash = "sha256-k5BYpPNIWYY+qjc0tnjogM0c5fWJRY/uoRi/IhJRQ0E=";
+    url = "https://files.pythonhosted.org/packages/e3/ef/8437c187319e779a76f4dbb468a1863d729297d79a1b5f44b10a58c96ec2/onemkl_license-2026.1.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+    hash = "sha256-Of2ClkivksngPCK6Io8HF02Cmqov48X2zXBzuOuKmAU=";
   };
 
   dependencies = [

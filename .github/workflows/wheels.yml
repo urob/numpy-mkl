@@ -99,8 +99,8 @@ jobs:
           # to 'working-directory'.)
           mv src ../../ && echo "SRC_DIR=${GITHUB_WORKSPACE}/../../src" >>$GITHUB_ENV
 
-          # Keep MKL directory short as it ends up in the final build.
-          echo "MKL_DIR=$(realpath "${GITHUB_WORKSPACE}"/../../mkl)" >>$GITHUB_ENV
+          # Path to MKL sources, referenced in the final build.
+          echo "MKL_VENV=$(realpath "${GITHUB_WORKSPACE}"/../../mkl)" >>$GITHUB_ENV
 
       - name: Set up python
         uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
@@ -114,16 +114,21 @@ jobs:
           # Prevent using future MKL versions, which may not be backward compatible.
           RELEASE_YEAR=$(git -C "${{ env.SRC_DIR }}" log -1 --format=%cd --date=format:%Y)
 
-          uv venv "${{ env.MKL_DIR }}"
-          source "${{ env.MKL_DIR }}/${{ env.venv_bin }}"/activate
+          uv venv "${{ env.MKL_VENV }}"
+          source "${{ env.MKL_VENV }}/${{ env.venv_bin }}"/activate
           uv pip install "mkl-devel<$((RELEASE_YEAR + 1)).0.0"
 
           # Get exact MKL version.
           echo "MKL_VERSION=$(uv pip show mkl | grep '^Version' | sed 's/Version: //')" \
               >>$GITHUB_ENV
 
-          # Get pkg-config path.
+          # Get pkg-config path (numpy, scipy).
           echo "PKG_CONFIG_PATH=$(python tools/get_file_in_pkg mkl-sdl.pc \
+              --pkg mkl-devel --parent)" >>$GITHUB_ENV
+
+          # Get CMake package path (mkl-service). MKL_DIR is where CMake's find_package looks
+          # for MKLConfig.cmake.
+          echo "MKL_DIR=$(python tools/get_file_in_pkg MKLConfig.cmake \
               --pkg mkl-devel --parent)" >>$GITHUB_ENV
 
           # Fetch MKL license.
@@ -132,7 +137,7 @@ jobs:
 
           # Add .so -> .so.* symlinks to fix linking for mkl-service.
           if [[ "${{ runner.os }}" == "Linux" ]]; then
-            cd "${{ env.MKL_DIR }}"/lib
+            cd "${{ env.MKL_VENV }}"/lib
             for i in libmkl*.so.*; do ln -s $i ${i%.*}; done
           fi
 
@@ -153,8 +158,9 @@ jobs:
           # Pin runtime library to the exact version used for compiling.
           MAJOR=$(echo "$MKL_VERSION" | cut -d. -f1)
           if [[ "${{ inputs.name }}" == "mkl-service" ]]; then
-            # MKLROOT must be set, even with --no-sync.
-            MKLROOT="${{ env.MKL_DIR }}" uv add --no-sync "mkl>=${MKL_VERSION},<$((MAJOR + 1)).0.0"
+            # Use --frozen (implies --no-sync) to skip re-locking, which would make meson-python
+            # configure the whole project just to resolve the dynamic version.
+            uv add --frozen "mkl>=${MKL_VERSION},<$((MAJOR + 1)).0.0"
           else
             uv add --no-sync "mkl>=${MKL_VERSION},<$((MAJOR + 1)).0.0" mkl-service
           fi
@@ -225,14 +231,15 @@ jobs:
               ;;
 
             'mkl-service')
-              case "${{ runner.os }}" in
-                Linux) export MKLROOT="${{ env.MKL_DIR }}" ;;
-                Windows) export MKLROOT="${{ env.MKL_DIR }}"/Library ;;
-              esac
-              export CFLAGS="${CFLAGS} -fno-fast-math"
+              # Built with meson-python; MKL is located through its CMake package
+              # config, i.e. via $MKL_DIR.
               args="--no-build-isolation"
+              case "${{ runner.os }}" in
+                # Force MSVC; meson prefers any gcc on PATH over falling back to VS.
+                Windows) args="${args} -Csetup-args=--vsenv" ;;
+              esac
               uv venv buildenv && source buildenv/"${{ env.venv_bin }}"/activate
-              uv pip install setuptools cython
+              uv pip install meson-python ninja cmake cython
               ;;
           esac
           uv build --wheel --index https://urob.github.io/numpy-mkl ${args}
@@ -255,7 +262,7 @@ jobs:
       - name: Run tests
         run: |
           # Make sure we don't pick up the development MKL libraries.
-          rm -rf "${{ env.MKL_DIR }}"
+          rm -rf "${{ env.MKL_VENV }}"
 
           # Set up test environment.
           uv venv testenv && source testenv/"${{ env.venv_bin }}"/activate

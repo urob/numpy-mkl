@@ -139,9 +139,20 @@ jobs:
 
       - name: Apply patches
         run: |
-          # Apply patches.
+          # Apply patches, if the package has any.
           cd "${{ env.SRC_DIR }}"
-          git apply "${GITHUB_WORKSPACE}"/patches/${{ inputs.name }}/*.patch
+          shopt -s nullglob
+          patches=("${GITHUB_WORKSPACE}"/patches/${{ inputs.name }}/*.patch)
+          [[ ${#patches[@]} -eq 0 ]] || git apply "${patches[@]}"
+
+          # Swap in our own import-time hook, which locates MKL through the installed
+          # 'mkl' package instead of assuming a Windows venv layout. This relies on
+          # _init_helper getting imported, so we assert first that it is.
+          if [[ "${{ inputs.name }}" == "mkl-service" ]]; then
+            grep -q '^from \. import _init_helper$' mkl/__init__.py ||
+                { echo "::error::mkl-service no longer imports _init_helper"; exit 1; }
+            cp "${GITHUB_WORKSPACE}"/patches/mkl-service/_init_helper.py mkl/
+          fi
 
           # Fix MKL pkg-config on Windows.
           if [[ "${{ runner.os }}" == "Windows" ]]; then

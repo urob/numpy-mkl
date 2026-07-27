@@ -42,47 +42,12 @@ jobs:
         run: |
           nix flake update
 
-      - name: Fetch python versions provided by nixpkgs
-        run: |
-          # Read the revision from the lock file. Resolving `nixpkgs` directly
-          # would consult the flake registry instead of our own pin.
-          rev=$(jq -r '.nodes.nixpkgs.locked.rev' flake.lock)
-
-          # Removed interpreters linger as throwing aliases, so probe each
-          # attribute rather than trusting the attribute names alone.
-          pythons=$(nix eval --raw \
-              "github:NixOS/nixpkgs/$rev#legacyPackages.x86_64-linux" --apply '
-            pkgs:
-            let
-              names = builtins.filter (n: builtins.match "python3[0-9]+" n != null) (
-                builtins.attrNames pkgs
-              );
-              version =
-                name:
-                let
-                  try = builtins.tryEval (builtins.getAttr name pkgs).pythonVersion;
-                in
-                if try.success then try.value else "";
-            in
-            builtins.concatStringsSep " " (builtins.filter (v: v != "") (map version names))
-          ')
-
-          echo "Provided by nixpkgs: $pythons"
-          echo "pythons=$pythons" >>$GITHUB_ENV
-
       - name: Update wheels
         run: |
-          python=$(uv run tools/updated-nix-flakes -d nix \
-              -f flake.nix -f templates/nix/flake.nix \
-              --python "$pythons" --token "${{ secrets.GITHUB_TOKEN }}")
-          echo "Selected python: $python"
-          echo "python=$python" >>$GITHUB_ENV
+          uv run tools/update-nix-wheels templates/dependency.nix \
+              -d nix -c ci-targets.yaml -f templates/nix/flake.nix
 
-      - name: Update mkl dependencies
-        run: |
-          uv run tools/make-nix-mkl-deps templates/dependency.nix -o nix/mkl
-
-      - name: Verify devshell
+      - name: Verify derivations
         run: |
           # Stage the changes, as nix ignores untracked files in a git tree.
           git add -A
@@ -90,20 +55,52 @@ jobs:
           # The template ships without a lock file, so just check that it parses.
           nix-instantiate --parse templates/nix/flake.nix >/dev/null
 
-          version=$(nix develop -c python -c \
-              'import sys; print("%d.%d" % sys.version_info[:2])')
-          if [[ "$version" != "$python" ]]; then
-              echo "::error::Devshell provides python $version, expected $python"
-              exit 1
-          fi
+          # Every package of the resolution needs an overlay attribute, or it
+          # silently keeps whichever version nixpkgs ships.
+          nix eval --impure --expr '
+            let
+              wheels = import ./nix/wheels.nix;
+              extension = builtins.head (
+                (import ./nix/overlay.nix null {
+                  pythonPackagesExtensions = [ ];
+                }).pythonPackagesExtensions
+              );
+              exposed = builtins.attrNames (extension null null);
+              resolved = builtins.attrNames wheels.${builtins.head (builtins.attrNames wheels)};
+            in
+            if exposed == resolved then
+              true
+            else
+              throw "overlay exposes ${toString exposed}, resolution has ${toString resolved}"
+          ' >/dev/null
 
-          # Numpy only warns when mkl-service is missing, so import it directly.
-          # Solving an eigenproblem confirms mkl itself is loadable.
-          nix develop -c python -c '
+          # Numpy only warns when mkl-service is missing, so import mkl
+          # directly. Solving an eigenproblem confirms mkl itself is loadable.
+          check='
           import mkl, numpy, scipy.linalg
           scipy.linalg.eigh(numpy.eye(4))
           print(numpy.__version__, scipy.__version__, mkl.get_version_string())
           '
+
+          # Build and import every python the resolution supports.
+          for version in $(nix eval --raw --impure --expr \
+              'builtins.concatStringsSep " " (builtins.attrNames (import ./nix/wheels.nix))'); do
+              echo "::group::python $version"
+              env=$(nix build --no-link --print-out-paths --impure --expr "
+                let
+                  flake = builtins.getFlake (toString ./.);
+                  pkgs = import flake.inputs.nixpkgs {
+                    system = \"x86_64-linux\";
+                    overlays = [ flake.overlays.default ];
+                  };
+                in
+                pkgs.python${version//./}.withPackages (ps: [ ps.numpy ps.scipy ])")
+              "$env/bin/python" -c "$check"
+              echo "::endgroup::"
+          done
+
+          # The devshell tracks the newest supported python.
+          nix develop -c python -c 'import mkl, numpy, scipy'
 
       - name: Commit nix derivations
         run: |

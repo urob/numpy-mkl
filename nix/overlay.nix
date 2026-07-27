@@ -4,8 +4,10 @@ let
     numpy = pyFinal.callPackage ./numpy.nix { };
     scipy = pyFinal.callPackage ./scipy.nix { };
 
-    # Just to avoid conflicts in case any dependency is added explicitly.
-    # numpy.nix and scipy.nix source the patched versions regardless.
+    # Exposed to avoid conflicts in case any dependency is added explicitly.
+    # The derivations source each other by path rather than through the
+    # package set, so that overriding an attribute here cannot desync a
+    # package from the resolution it was pinned and tested against.
     mkl-service = pyFinal.callPackage ./mkl-service.nix { };
     intel-cmplr-lib-ur = pyFinal.callPackage ./mkl/intel-cmplr-lib-ur.nix { };
     intel-openmp = pyFinal.callPackage ./mkl/intel-openmp.nix { };

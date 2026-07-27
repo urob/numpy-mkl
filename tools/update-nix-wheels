@@ -1,0 +1,290 @@
+#!/usr/bin/env python
+
+"""Pin the nix derivations to a uv resolution of this repo's package index.
+
+Resolving numpy, scipy and mkl-service together lets uv apply the requirement
+metadata baked into the wheels, so the mkl runtime is guaranteed compatible
+with the wheels that use it. Resolving once per python version keeps that
+guarantee even when the packages support different pythons.
+"""
+
+import argparse
+import re
+import subprocess
+import tomllib
+from base64 import b64encode
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+import requests
+import yaml
+
+# Packages built by this repo. Their derivations are maintained by hand; every
+# other package in the resolution is an mkl runtime dependency.
+PACKAGES = [
+    'numpy',
+    'scipy',
+    'mkl-service',
+]
+
+INDEX = 'https://urob.github.io/numpy-mkl'
+PLATFORM = 'x86_64-manylinux_2_28'
+
+PYPI = 'https://pypi.org/pypi/{package}/json'
+REQUESTS_TIMEOUT = 45
+
+# Matches `package==version  # via parent, parent` in an annotated resolution.
+REQUIREMENT = re.compile(r'^(?P<name>[^=\s]+)==\S+(?:\s+#\s+via\s+(?P<via>.*))?$')
+
+# Matches the pythonXYZ attribute selecting the interpreter in a flake.
+PY_ATTR = re.compile(r'\bpython3\d+\b')
+
+
+def sri(hexdigest):
+    """Convert a hex sha256 digest into the SRI form expected by nix."""
+    return 'sha256-' + b64encode(bytes.fromhex(hexdigest)).decode()
+
+
+def sync_python(file, version):
+    """Point the pythonXYZ attribute of a flake at the given python version."""
+    flake, count = PY_ATTR.subn('python' + version.replace('.', ''), file.read_text())
+    if count != 1:
+        raise PythonAttrError(f'Expected one python attribute in {file}, got {count}')
+    file.write_text(flake)
+
+
+def compile_args(python, requirements):
+    return [
+        'uv',
+        'pip',
+        'compile',
+        str(requirements),
+        '--index-url',
+        INDEX,
+        '--python-version',
+        python,
+        '--python-platform',
+        PLATFORM,
+        '--no-header',
+    ]
+
+
+class Resolution:
+    """One internally consistent set of wheels for a single python version."""
+
+    def __init__(self, python, workdir):
+        self.python = python
+        self.workdir = workdir
+        self.requirements = workdir / 'requirements.in'
+        self.requirements.write_text('\n'.join(PACKAGES) + '\n')
+
+    def resolve(self):
+        """Return (wheels, dependencies), or None if nothing satisfies python."""
+        wheels = self.fetch_wheels()
+        if wheels is None:
+            return None
+        dependencies = self.fetch_dependencies(wheels)
+        return wheels, dependencies
+
+    def fetch_wheels(self):
+        """Read version, url and hash of every wheel from a pylock export."""
+        # The filename is prescribed by uv, so give each python its own dir.
+        lock = self.workdir / f'py{self.python}' / 'pylock.toml'
+        lock.parent.mkdir(parents=True, exist_ok=True)
+        args = [*compile_args(self.python, self.requirements), '--format']
+        result = self.run([*args, 'pylock.toml', '-o', str(lock)])
+        if result is None:
+            return None
+
+        packages = tomllib.loads(lock.read_text())['packages']
+        return {
+            package['name']: {
+                'version': package['version'],
+                'url': package['wheels'][0]['url'],
+                'hash': sri(package['wheels'][0]['hashes']['sha256']),
+            }
+            for package in packages
+        }
+
+    def fetch_dependencies(self, wheels):
+        """Invert uv's `# via` annotations into a forward dependency graph."""
+        args = [*compile_args(self.python, self.requirements), '--annotation-style']
+        result = self.run([*args, 'line'])
+        if result is None:
+            raise ResolutionError(f'Annotated resolution failed for {self.python}')
+
+        dependencies = {name: set() for name in wheels}
+        for line in result.splitlines():
+            if not (match := REQUIREMENT.match(line.strip())):
+                continue
+            for parent in (match['via'] or '').split(','):
+                # Requirements file entries are recorded as `-r <file>`.
+                if (parent := parent.strip()) in dependencies:
+                    dependencies[parent].add(match['name'])
+        return {name: sorted(deps) for name, deps in dependencies.items()}
+
+    def run(self, args):
+        """Run uv, returning None when no resolution exists for this python."""
+        result = subprocess.run(args, capture_output=True, text=True, check=False)
+        if result.returncode == 0:
+            return result.stdout
+        if 'No solution found' in result.stderr:
+            return None
+        raise ResolutionError(result.stderr.strip())
+
+
+class Wheels:
+    """The resolutions of every supported python, rendered for nix."""
+
+    header = (
+        '# Do not edit, generated automatically by <tools/update-nix-wheels>.\n'
+        '#\n'
+        '# One internally consistent resolution per python version, produced by\n'
+        '# `uv pip compile --index-url {index} --python-version <key>\n'
+        '#  --python-platform {platform}`.\n'
+    )
+
+    def __init__(self, resolutions):
+        self.resolutions = resolutions
+
+    @property
+    def pythons(self):
+        return sorted(self.resolutions, key=lambda _: [int(p) for p in _.split('.')])
+
+    def dependencies(self):
+        """Return the dependency graph, which must not vary across pythons."""
+        graphs = {
+            python: resolution[1] for python, resolution in self.resolutions.items()
+        }
+        distinct = {repr(graph) for graph in graphs.values()}
+        if len(distinct) > 1:
+            raise DependencyGraphError(
+                'Dependency graph differs across python versions: '
+                + ', '.join(f'{k}={v}' for k, v in graphs.items())
+            )
+        return next(iter(graphs.values()))
+
+    def render(self):
+        out = self.header.format(index=INDEX, platform=PLATFORM)
+        out += '{\n'
+        for python in self.pythons:
+            wheels, _ = self.resolutions[python]
+            out += f'  "{python}" = {{\n'
+            for name in sorted(wheels):
+                wheel = wheels[name]
+                out += f'    {name} = {{\n'
+                for field in ('version', 'url', 'hash'):
+                    out += f'      {field} = "{wheel[field]}";\n'
+                out += '    };\n'
+            out += '  };\n'
+        return out + '}\n'
+
+
+class Dependency:
+    """An mkl runtime dependency, rendered from the shared nix template."""
+
+    def __init__(self, name, dependencies):
+        self.name = name
+        self.dependencies = dependencies
+        self.metadata = self.fetch_metadata()
+
+    def fetch_metadata(self):
+        url = PYPI.format(package=self.name)
+        response = requests.get(
+            url, timeout=REQUESTS_TIMEOUT, headers={'Accept': 'application/json'}
+        )
+        if (rc := response.status_code) != 200:  # noqa: PLR2004
+            raise FetchMetadataError(f'Download of {url} failed with status {rc}')
+        return response.json()['info']
+
+    def render(self, template):
+        deps = ''.join(
+            f'\n    (callPackage ./{_}.nix {{ }})' for _ in self.dependencies
+        )
+        fields = {
+            'name': self.name,
+            'dependencies': deps,
+            'description': self.metadata['summary'],
+            'project_url': self.metadata['project_url'],
+            'license': self.metadata['license'] or 'Unknown',
+        }
+        for field, value in fields.items():
+            template = template.replace(f'@{field}@', value)
+        return template
+
+
+class DependencyGraphError(Exception):
+    pass
+
+
+class FetchMetadataError(Exception):
+    pass
+
+
+class PythonAttrError(Exception):
+    pass
+
+
+class ResolutionError(Exception):
+    pass
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+
+    parser.add_argument('template', type=str, help='mkl dependency template')
+    parser.add_argument('-d', '--nixdir', required=True, type=str, help='nix sources')
+    parser.add_argument(
+        '-c', '--config', required=True, type=str, help='ci targets config'
+    )
+    parser.add_argument(
+        '-f',
+        '--flake',
+        type=str,
+        action='append',
+        default=[],
+        help='flake to sync the python version with (repeatable)',
+    )
+
+    args = parser.parse_args()
+    nixdir = Path(args.nixdir)
+    template = Path(args.template).read_text()
+    config = yaml.safe_load(Path(args.config).read_text())
+
+    # Resolve everything before writing, so that a python without wheels or an
+    # inconsistent graph leaves the tree untouched.
+    with TemporaryDirectory() as tmp:
+        resolutions = {}
+        for python in config['defaults']['python_versions']:
+            if resolved := Resolution(python, Path(tmp)).resolve():
+                resolutions[python] = resolved
+            else:
+                print(f'Skipping python {python}: no wheels available')
+
+    if not resolutions:
+        raise ResolutionError('No python version resolves against the index')
+
+    wheels = Wheels(resolutions)
+    dependencies = wheels.dependencies()
+    latest = wheels.pythons[-1]
+
+    (nixdir / 'wheels.nix').write_text(wheels.render())
+
+    # Everything not built by this repo is an mkl runtime dependency.
+    mkldir = nixdir / 'mkl'
+    generated = set()
+    for name in sorted(set(dependencies) - set(PACKAGES)):
+        (mkldir / f'{name}.nix').write_text(
+            Dependency(name, dependencies[name]).render(template)
+        )
+        generated.add(f'{name}.nix')
+
+    # Drop dependencies that have left the resolution.
+    for stale in sorted({_.name for _ in mkldir.glob('*.nix')} - generated):
+        print(f'Removing stale dependency {stale}')
+        (mkldir / stale).unlink()
+
+    for file in args.flake:
+        sync_python(Path(file), latest)
+
+    print(f'Pinned python {", ".join(wheels.pythons)}')

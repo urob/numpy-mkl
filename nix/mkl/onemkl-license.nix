@@ -1,18 +1,22 @@
-# Do not edit, generated automatically by <maintain-nix-deps.py>.
+# Do not edit, generated automatically by <tools/update-nix-wheels>.
 {
   buildPythonPackage,
   callPackage,
   fetchurl,
   lib,
+  python,
 }:
-buildPythonPackage rec {
+let
   pname = "onemkl-license";
-  version = "2026.1.0";
+  wheel = (import ../lib.nix { inherit lib; }).wheelFor { inherit pname python; };
+in
+buildPythonPackage rec {
+  inherit pname;
+  inherit (wheel) version;
   format = "wheel";
 
   src = fetchurl {
-    url = "https://files.pythonhosted.org/packages/e3/ef/8437c187319e779a76f4dbb468a1863d729297d79a1b5f44b10a58c96ec2/onemkl_license-2026.1.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-    hash = "sha256-Of2ClkivksngPCK6Io8HF02Cmqov48X2zXBzuOuKmAU=";
+    inherit (wheel) url hash;
   };
 
   dependencies = [
@@ -31,5 +35,6 @@ buildPythonPackage rec {
     description = "Intel® oneAPI Math Kernel Library";
     homepage = "https://pypi.org/project/onemkl-license/";
     license = "Intel Simplified Software License";
+    platforms = [ "x86_64-linux" ];
   };
 }

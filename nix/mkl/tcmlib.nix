@@ -1,18 +1,22 @@
-# Do not edit, generated automatically by <maintain-nix-deps.py>.
+# Do not edit, generated automatically by <tools/update-nix-wheels>.
 {
   buildPythonPackage,
   callPackage,
   fetchurl,
   lib,
+  python,
 }:
-buildPythonPackage rec {
+let
   pname = "tcmlib";
-  version = "1.5.0";
+  wheel = (import ../lib.nix { inherit lib; }).wheelFor { inherit pname python; };
+in
+buildPythonPackage rec {
+  inherit pname;
+  inherit (wheel) version;
   format = "wheel";
 
   src = fetchurl {
-    url = "https://files.pythonhosted.org/packages/60/24/aa409bb20703acc70cf4d3bc620a55c789639c2995b2667fb44ae7236ec9/tcmlib-1.5.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-    hash = "sha256-nXwBz/Narpv1OQtiBoDr3xCn0hHCLWSIonoClQLn0Ko=";
+    inherit (wheel) url hash;
   };
 
   dependencies = [
@@ -31,5 +35,6 @@ buildPythonPackage rec {
     description = "Thread Composability Manager";
     homepage = "https://pypi.org/project/tcmlib/";
     license = "Intel Simplified Software License";
+    platforms = [ "x86_64-linux" ];
   };
 }

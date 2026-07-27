@@ -1,22 +1,26 @@
-# Do not edit, generated automatically by <maintain-nix-deps.py>.
+# Do not edit, generated automatically by <tools/update-nix-wheels>.
 {
   buildPythonPackage,
   callPackage,
   fetchurl,
   lib,
+  python,
 }:
-buildPythonPackage rec {
+let
   pname = "intel-openmp";
-  version = "2026.1.0";
+  wheel = (import ../lib.nix { inherit lib; }).wheelFor { inherit pname python; };
+in
+buildPythonPackage rec {
+  inherit pname;
+  inherit (wheel) version;
   format = "wheel";
 
   src = fetchurl {
-    url = "https://files.pythonhosted.org/packages/72/23/60aeb428e6b1fb34fb81d4970d91ff8b5deeeeb446e1628bd78f9e3d1f8b/intel_openmp-2026.1.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-    hash = "sha256-5oh/cBt9IyPtFHAIiTua8i5RGqqX4PycN+uL4kpTZrA=";
+    inherit (wheel) url hash;
   };
 
   dependencies = [
-    (callPackage ./intel-cmplr-lib-ur.nix { }) # ==2026.1.0
+    (callPackage ./intel-cmplr-lib-ur.nix { })
   ];
 
   # Add dependency libraries to runtime path of mkl libs. Do this
@@ -32,5 +36,6 @@ buildPythonPackage rec {
     description = "Intel OpenMP* Runtime Library";
     homepage = "https://pypi.org/project/intel-openmp/";
     license = "Intel End User License Agreement for Developer Tools";
+    platforms = [ "x86_64-linux" ];
   };
 }

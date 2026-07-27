@@ -177,18 +177,18 @@ jobs:
 
       - name: Install Windows build dependencies
         run: |
-          # Use fall-through operator ';&' to match all cases.
+          # Use ';;&' so that every subsequent pattern is re-tested.
           case "${{ inputs.name }}" in
             numpy | scipy)
               # Pkg-config is required for numpy and scipy.
               choco install -y --no-progress --stoponfirstfailure \
                   --checksum 6004DF17818F5A6DBF19CB335CC92702 pkgconfiglite
-              ;&
+              ;;&
             scipy)
               # Gcc is required for scipy.
               choco install rtools -y --no-progress --force --version=4.0.0.20220206
               echo "c:\rtools40\ucrt64\bin;" >>$GITHUB_PATH
-              ;&
+              ;;&
           esac
         if: runner.os == 'windows'
 
@@ -197,16 +197,16 @@ jobs:
           case "${{ inputs.name }}" in
             mkl-service)
               dnf -y install clang
-              ;&
+              ;;&
             numpy)
               # Tests for distutil require clang (Python < 3.12).
               [[ "$UV_PYTHON" =~ ^(cp310|cp311)$ ]] && dnf -y install clang || true
-              ;&
+              ;;&
             # scipy)
             #   # Test dependency gmpy2 hasn't released pre-build wheels for py314, building
             #   # from scratch requires libmpc-devel.
             #   [[ "$UV_PYTHON" =~ ^(cp314)$ ]] && dnf -y install libmpc-devel || true
-            #   ;&
+            #   ;;&
           esac
         if: (runner.os == 'linux') && inputs.manylinux
 

@@ -58,14 +58,14 @@
   };
   "3.12" = {
     intel-cmplr-lib-ur = {
-      version = "2026.1.0";
-      url = "https://files.pythonhosted.org/packages/8e/06/da0fcd62ee4672489ede80f322eec61b48a38695b0a5072d6d1075b37197/intel_cmplr_lib_ur-2026.1.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-dLZKzoJ3sDGqNjKNyPh/f5WabKTaW2jGmSPTcoPgFmQ=";
+      version = "2026.1.1";
+      url = "https://files.pythonhosted.org/packages/b1/27/6844105e342013acb8d1846cb08b82d8bd1434f594b6245da82c71ea7002/intel_cmplr_lib_ur-2026.1.1-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-CVxjVCu4rjVj/hsDexYVBxdpfVyGAhlhjJmlX7LHxfc=";
     };
     intel-openmp = {
-      version = "2026.1.0";
-      url = "https://files.pythonhosted.org/packages/72/23/60aeb428e6b1fb34fb81d4970d91ff8b5deeeeb446e1628bd78f9e3d1f8b/intel_openmp-2026.1.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-5oh/cBt9IyPtFHAIiTua8i5RGqqX4PycN+uL4kpTZrA=";
+      version = "2026.1.1";
+      url = "https://files.pythonhosted.org/packages/c9/8c/dc7dbe80e79a3929ed9667b5193abc6d6311818371a6643d8d2671427633/intel_openmp-2026.1.1-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-29gfq/HTTvMx+Hfk2z3h7l5KwR/u8j4V/S13hVZ0DmM=";
     };
     mkl = {
       version = "2026.1.0";
@@ -110,14 +110,14 @@
   };
   "3.13" = {
     intel-cmplr-lib-ur = {
-      version = "2026.1.0";
-      url = "https://files.pythonhosted.org/packages/8e/06/da0fcd62ee4672489ede80f322eec61b48a38695b0a5072d6d1075b37197/intel_cmplr_lib_ur-2026.1.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-dLZKzoJ3sDGqNjKNyPh/f5WabKTaW2jGmSPTcoPgFmQ=";
+      version = "2026.1.1";
+      url = "https://files.pythonhosted.org/packages/b1/27/6844105e342013acb8d1846cb08b82d8bd1434f594b6245da82c71ea7002/intel_cmplr_lib_ur-2026.1.1-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-CVxjVCu4rjVj/hsDexYVBxdpfVyGAhlhjJmlX7LHxfc=";
     };
     intel-openmp = {
-      version = "2026.1.0";
-      url = "https://files.pythonhosted.org/packages/72/23/60aeb428e6b1fb34fb81d4970d91ff8b5deeeeb446e1628bd78f9e3d1f8b/intel_openmp-2026.1.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-5oh/cBt9IyPtFHAIiTua8i5RGqqX4PycN+uL4kpTZrA=";
+      version = "2026.1.1";
+      url = "https://files.pythonhosted.org/packages/c9/8c/dc7dbe80e79a3929ed9667b5193abc6d6311818371a6643d8d2671427633/intel_openmp-2026.1.1-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-29gfq/HTTvMx+Hfk2z3h7l5KwR/u8j4V/S13hVZ0DmM=";
     };
     mkl = {
       version = "2026.1.0";
@@ -162,14 +162,14 @@
   };
   "3.14" = {
     intel-cmplr-lib-ur = {
-      version = "2026.1.0";
-      url = "https://files.pythonhosted.org/packages/8e/06/da0fcd62ee4672489ede80f322eec61b48a38695b0a5072d6d1075b37197/intel_cmplr_lib_ur-2026.1.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-dLZKzoJ3sDGqNjKNyPh/f5WabKTaW2jGmSPTcoPgFmQ=";
+      version = "2026.1.1";
+      url = "https://files.pythonhosted.org/packages/b1/27/6844105e342013acb8d1846cb08b82d8bd1434f594b6245da82c71ea7002/intel_cmplr_lib_ur-2026.1.1-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-CVxjVCu4rjVj/hsDexYVBxdpfVyGAhlhjJmlX7LHxfc=";
     };
     intel-openmp = {
-      version = "2026.1.0";
-      url = "https://files.pythonhosted.org/packages/72/23/60aeb428e6b1fb34fb81d4970d91ff8b5deeeeb446e1628bd78f9e3d1f8b/intel_openmp-2026.1.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-5oh/cBt9IyPtFHAIiTua8i5RGqqX4PycN+uL4kpTZrA=";
+      version = "2026.1.1";
+      url = "https://files.pythonhosted.org/packages/c9/8c/dc7dbe80e79a3929ed9667b5193abc6d6311818371a6643d8d2671427633/intel_openmp-2026.1.1-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-29gfq/HTTvMx+Hfk2z3h7l5KwR/u8j4V/S13hVZ0DmM=";
     };
     mkl = {
       version = "2026.1.0";

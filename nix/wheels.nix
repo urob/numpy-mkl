@@ -78,9 +78,9 @@
       hash = "sha256-5rjPQRU4jHo7gfKvu6GIP+9CmiiCXLsjNvCKCwn0zF0=";
     };
     numpy = {
-      version = "2.5.1";
-      url = "https://github.com/urob/numpy-mkl/releases/download/0.3.7/numpy-2.5.1-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
-      hash = "sha256-rawfS+cSgxSs/ybgalia0RdGvuYcK73MODpp1YYOJaQ=";
+      version = "2.5.2";
+      url = "https://github.com/urob/numpy-mkl/releases/download/0.3.10/numpy-2.5.2-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
+      hash = "sha256-B9+hCQ/aGEviLlgZpLQGNmOLpyA1i1BrgQ5pa3+2EyI=";
     };
     onemkl-license = {
       version = "2026.1.0";
@@ -130,9 +130,9 @@
       hash = "sha256-V3YEDWSW6CTYhGwekUGS5mdPMRBWDmo5UpnMJdciMdg=";
     };
     numpy = {
-      version = "2.5.1";
-      url = "https://github.com/urob/numpy-mkl/releases/download/0.3.7/numpy-2.5.1-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
-      hash = "sha256-P0KZ+SIiX/6DuWRx/Iya2SjBieGGCP6t9DucOp0L4vs=";
+      version = "2.5.2";
+      url = "https://github.com/urob/numpy-mkl/releases/download/0.3.10/numpy-2.5.2-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
+      hash = "sha256-cjbecs32KctPuHOKniUSUjJlPOrgSTdmpt6LUCR1St0=";
     };
     onemkl-license = {
       version = "2026.1.0";
@@ -182,9 +182,9 @@
       hash = "sha256-OM1NO+s4SldU6UfxVWuBPbnXj/7rNE/f+d4uPIniso0=";
     };
     numpy = {
-      version = "2.5.1";
-      url = "https://github.com/urob/numpy-mkl/releases/download/0.3.7/numpy-2.5.1-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
-      hash = "sha256-1uZomlYo5PNgMG9aVchQBsNIoA56bA6yveapGDKFU0U=";
+      version = "2.5.2";
+      url = "https://github.com/urob/numpy-mkl/releases/download/0.3.10/numpy-2.5.2-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
+      hash = "sha256-y8opz8veNB2eAz/tuVb5XrK14DcDyoJSRmi0Df9bQJY=";
     };
     onemkl-license = {
       version = "2026.1.0";

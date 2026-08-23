@@ -88,9 +88,9 @@
       hash = "sha256-Of2ClkivksngPCK6Io8HF02Cmqov48X2zXBzuOuKmAU=";
     };
     scipy = {
-      version = "1.18.0";
-      url = "https://github.com/urob/numpy-mkl/releases/download/0.3.5/scipy-1.18.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
-      hash = "sha256-wzGxurzBnCSdG/C0yq+a1FtQqTCtFkm6zPJAuyESD+Q=";
+      version = "1.18.1";
+      url = "https://github.com/urob/numpy-mkl/releases/download/0.3.12/scipy-1.18.1-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
+      hash = "sha256-F4kTg3Wnf2zL3utZwCEMMMDGwJALr0LtIPUUhT9uFv0=";
     };
     tbb = {
       version = "2023.1.0";
@@ -140,9 +140,9 @@
       hash = "sha256-Of2ClkivksngPCK6Io8HF02Cmqov48X2zXBzuOuKmAU=";
     };
     scipy = {
-      version = "1.18.0";
-      url = "https://github.com/urob/numpy-mkl/releases/download/0.3.4/scipy-1.18.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
-      hash = "sha256-565BV85G06+5ekpcOZjJlzLZmvSeC8XRHz0S8TWzdDQ=";
+      version = "1.18.1";
+      url = "https://github.com/urob/numpy-mkl/releases/download/0.3.12/scipy-1.18.1-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
+      hash = "sha256-G5hunGz36NpHdSKXA/aPNFxquOaQhajkx7jZiK4SN+0=";
     };
     tbb = {
       version = "2023.1.0";
@@ -192,9 +192,9 @@
       hash = "sha256-Of2ClkivksngPCK6Io8HF02Cmqov48X2zXBzuOuKmAU=";
     };
     scipy = {
-      version = "1.18.0";
-      url = "https://github.com/urob/numpy-mkl/releases/download/0.3.4/scipy-1.18.0-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
-      hash = "sha256-6tc2fu8Tgv9npPI4dZss4PpRT571yaKaS0dLN1IyXM8=";
+      version = "1.18.1";
+      url = "https://github.com/urob/numpy-mkl/releases/download/0.3.12/scipy-1.18.1-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
+      hash = "sha256-sZyEHDLGDx0kW3C1+zkn3FWtMSt0vTBIj3C9qr+4c0c=";
     };
     tbb = {
       version = "2023.1.0";

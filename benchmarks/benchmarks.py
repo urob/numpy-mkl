@@ -44,7 +44,7 @@ class Benchmark:
 
 
 class Chol(Benchmark):
-    size = (21, 144, 987)
+    size = (144, 610, 4181)
     loops = (2_500, 50, 1)
 
     def setup(self, k):
@@ -54,7 +54,7 @@ class Chol(Benchmark):
         self.x = tl + tl.T + (k - 1) * np.eye(k)
 
     def time_it(self):
-        _ = np.linalg.svd(self.x)
+        _ = np.linalg.cholesky(self.x)
 
 
 class Det(Benchmark):

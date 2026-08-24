@@ -187,9 +187,13 @@ jobs:
           # Use ';;&' so that every subsequent pattern is re-tested.
           case "${{ inputs.name }}" in
             numpy | scipy)
-              # Pkg-config is required for numpy and scipy.
-              choco install -y --no-progress --stoponfirstfailure \
-                  --checksum 6004DF17818F5A6DBF19CB335CC92702 pkgconfiglite
+              # Pkg-config is required for numpy and scipy. Sourced from PyPI (pinned via
+              # uv.lock) rather than chocolatey, whose SourceForge download intermittently
+              # times out. Point meson at the bundled binary directly: the package's
+              # 'pkg-config' console script silently no-ops when PKG_CONFIG_PATH is set.
+              uv sync --frozen --only-group build-deps
+              echo "PKG_CONFIG=$(uv run --frozen --only-group build-deps \
+                  python -c 'import pkgconf; print(pkgconf.get_executable())')" >>$GITHUB_ENV
               ;;&
             scipy)
               # Gcc is required for scipy. Rtools45 (gcc 14) matches upstream's wheel builder.

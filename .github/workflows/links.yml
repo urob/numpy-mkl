@@ -1,9 +1,10 @@
 name: Link external dependencies
 
 on:
+  workflow_call:
   workflow_dispatch:
   schedule:
-    - cron: "15 21 * * 0" # 21.15 UTC every Sunday
+    - cron: "15 21 * * 3" # 21.15 UTC every Wednesday
 
 permissions:
   contents: write
@@ -29,6 +30,7 @@ jobs:
           main/tools/link_pypi pypi/
 
       - name: Commit index
+        id: commit
         working-directory: pypi
         run: |
           if [[ -z "$(git status --porcelain)" ]]; then
@@ -40,3 +42,23 @@ jobs:
           git add .
           git commit -m "ci: Update external links"
           git push origin HEAD:pypi
+          echo "pushed=true" >>$GITHUB_OUTPUT
+
+      - name: Wait for index deployment
+        if: steps.commit.outputs.pushed == 'true'
+        run: |
+          # Pushing to 'pypi' only queues the Pages build. Wait until the new index is
+          # actually served, so that a build chained after this workflow resolves against
+          # it. Poll a file this commit changed, so the check can't pass on stale content.
+          file=$(git -C pypi show --name-only --format= HEAD | head -1)
+          url="https://urob.github.io/numpy-mkl/${file%/index.html}/"
+          for _ in $(seq 60); do
+            if served=$(curl -sSf -H 'Cache-Control: no-cache' "$url") \
+                && [[ "$served" == "$(cat "pypi/${file}")" ]]; then
+              echo "Index is live: $url"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::Updated index was not served within 10 minutes"
+          exit 1

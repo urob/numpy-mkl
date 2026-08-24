@@ -9,22 +9,28 @@ permissions:
   contents: write
 
 jobs:
+  # Refresh the mirrored PyPI links before building, so that wheels are resolved and
+  # tested against an index that carries the latest MKL runtime they pin.
+  links:
+    uses: ./.github/workflows/links.yml
+
   mkl-service:
     uses: ./.github/workflows/wheels.yml
     with:
       name: mkl-service
       repo: IntelPython/mkl-service
+    needs: links
 
   numpy:
     uses: ./.github/workflows/wheels.yml
     with:
       name: numpy
       repo: numpy/numpy
-    needs: mkl-service
+    needs: [links, mkl-service]
 
   scipy:
     uses: ./.github/workflows/wheels.yml
     with:
       name: scipy
       repo: scipy/scipy
-    needs: [mkl-service, numpy]
+    needs: [links, mkl-service, numpy]

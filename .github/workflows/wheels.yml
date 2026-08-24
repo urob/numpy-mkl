@@ -210,6 +210,10 @@ jobs:
               # for Pythran. Print the version: the toolchain floats with the runner image,
               # and compiler changes shift numerical results (see tools/scipy_tests.py).
               gfortran --version || { echo "::error::no gfortran on PATH"; exit 1; }
+
+              # Binutils' strip, from the same toolchain, is used post-build to drop the
+              # COFF symbol table MinGW leaves in every .pyd.
+              strip --version >/dev/null || { echo "::error::no strip on PATH"; exit 1; }
               ;;&
           esac
         if: runner.os == 'windows'
@@ -258,8 +262,31 @@ jobs:
           plat="$(ldd --version | head -1 | awk '{ print $NF }' | tr '.' '_')_$(uname -m)"
           uv run --locked --only-group build-deps \
               auditwheel repair "${{ env.SRC_DIR }}"/dist/*.whl -w wheelhouse \
-              --exclude 'libmkl*' --plat=manylinux_${plat}
+              --exclude 'libmkl*' --plat=manylinux_${plat} --strip
         if: runner.os == 'linux'
+
+      - name: Strip symbols (Windows)
+        env:
+          UV_PROJECT_ENVIRONMENT: ${{ env.BUILD_VENV }}
+        run: |
+          # MinGW leaves a COFF symbol table in every .pyd, ~40 MB per scipy wheel (~5 MB
+          # compressed). Only scipy is built with gcc; the MSVC-built packages keep their
+          # debug info in separate .pdb files that never enter the wheel, so they have
+          # nothing to strip. Mirrors upstream's tools/wheels/repair_windows.sh, which
+          # strips for the additional reason that delvewheel cannot name-mangle a .pyd
+          # carrying an overlay -- relevant here only if we ever stop excluding every DLL
+          # from vendoring. Run before delvewheel: patched binaries must not be rewritten
+          # afterwards. Paths stay absolute so that uv keeps resolving against our own
+          # pyproject.toml rather than the one in $SRC_DIR.
+          dist="${{ env.SRC_DIR }}/dist"
+          uv run --locked --only-group build-deps wheel unpack "$dist"/*.whl -d "$dist/unpacked"
+          find "$dist/unpacked" -name '*.pyd' -exec strip {} +
+
+          # 'wheel pack' rewrites RECORD with the post-strip hashes and re-derives the
+          # filename from the tags in WHEEL, so it lands back where the original was.
+          rm -f "$dist"/*.whl
+          uv run --locked --only-group build-deps wheel pack "$dist"/unpacked/* -d "$dist"
+        if: runner.os == 'windows' && inputs.name == 'scipy'
 
       - name: Repair wheel (Windows)
         env:

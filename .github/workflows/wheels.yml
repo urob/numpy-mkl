@@ -198,7 +198,7 @@ jobs:
               # uv.lock) rather than chocolatey, whose SourceForge download intermittently
               # times out. Point meson at the bundled binary directly: the package's
               # 'pkg-config' console script silently no-ops when PKG_CONFIG_PATH is set.
-              echo "PKG_CONFIG=$(uv run --frozen --only-group build-deps \
+              echo "PKG_CONFIG=$(uv run --locked --only-group build-deps \
                   python -c 'import pkgconf; print(pkgconf.get_executable())')" >>$GITHUB_ENV
               ;;&
             scipy)
@@ -256,7 +256,7 @@ jobs:
         run: |
           mkdir -p wheelhouse
           plat="$(ldd --version | head -1 | awk '{ print $NF }' | tr '.' '_')_$(uname -m)"
-          uv run --frozen --only-group build-deps \
+          uv run --locked --only-group build-deps \
               auditwheel repair "${{ env.SRC_DIR }}"/dist/*.whl -w wheelhouse \
               --exclude 'libmkl*' --plat=manylinux_${plat}
         if: runner.os == 'linux'
@@ -266,7 +266,7 @@ jobs:
           UV_PROJECT_ENVIRONMENT: ${{ env.BUILD_VENV }}
         run: |
           mkdir -p wheelhouse
-          uv run --frozen --only-group build-deps \
+          uv run --locked --only-group build-deps \
               delvewheel repair "${{ env.SRC_DIR }}"/dist/*.whl -w wheelhouse \
               --exclude mkl_rt.*.dll --exclude libsf_error_state.dll
         if: runner.os == 'windows'

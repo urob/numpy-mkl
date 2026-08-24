@@ -223,11 +223,18 @@ jobs:
         run: |
           case "${{ inputs.name }}" in
             numpy)
+              # Baseline is the floor the whole library is compiled against, so the wheel refuses
+              # to import below it: X86_V3 is x86-64-v3 (AVX2/FMA3/BMI2), i.e. Intel Haswell
+              # 2013+. It only buys speed in code numpy cannot runtime-dispatch (~10-18% on
+              # np.where, casts, structured assignment). 'max' takes every dispatch level the
+              # compiler supports at the cost of some binary size. Note MSVC gets none of them:
+              # numpy disables X86_V4 and AVX512_ICL there (broken in Highway), so the Windows
+              # wheels are AVX2-only regardless of what we ask for.
               args="-Csetup-args=-Dblas=mkl-sdl \
                     -Csetup-args=-Dlapack=mkl-sdl \
                     -Csetup-args=-Dallow-noblas=false \
-                    -Csetup-args=-Dcpu-baseline=F16C \
-                    -Csetup-args=-Dcpu-dispatch=AVX512_ICL"
+                    -Csetup-args=-Dcpu-baseline=X86_V3 \
+                    -Csetup-args=-Dcpu-dispatch=max"
               [[ "${{ runner.os }}" == "Windows" ]] && args="${args} -Csetup-args=--vsenv"
               ;;
 

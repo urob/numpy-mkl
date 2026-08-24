@@ -105,6 +105,9 @@ library at runtime as long as `mkl` is installed _anywhere_ accessible by Python
 the case when using one of the recommended install methods above, which will automatically install
 `mkl` alongside NumPy or SciPy.)
 
+`numpy` wheels are compiled against a lower architecture bound of `X86_V3` (ca. 2013+ for Core and
+Xeon CPUs, ca. 2022+ for Atom CPUs). Older architectures are not supported.
+
 ## References
 
 - [Intel(r) oneMKL Release

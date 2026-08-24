@@ -57,7 +57,7 @@ jobs:
               -d nix -c ci-targets.yaml -f templates/nix/flake.nix \
               --index "$RUNNER_TEMP/index"
 
-      - name: Verify derivations
+      - name: Check overlay
         run: |
           # Stage the changes, as nix ignores untracked files in a git tree.
           git add -A
@@ -83,6 +83,40 @@ jobs:
             else
               throw "overlay exposes ${toString exposed}, resolution has ${toString resolved}"
           ' >/dev/null
+
+      - name: Verify derivations
+        run: |
+          # Store paths are input-addressed, so an unchanged path means every
+          # input -- the nixpkgs revision, each wheel hash, the overlay itself --
+          # is unchanged, and the environments built below would be identical to
+          # the ones the last run already imported. Evaluating the paths is pure
+          # and takes seconds; building them fetches and patches ~1 GB per
+          # interpreter, and nixpkgs bumps routinely leave them untouched.
+          fingerprint=$(nix eval --raw --impure --expr '
+            let
+              flake = builtins.getFlake (toString ./.);
+              pkgs = import flake.inputs.nixpkgs {
+                system = "x86_64-linux";
+                overlays = [ flake.overlays.default ];
+              };
+              inherit (pkgs) lib;
+              attrFor = version: "python" + lib.replaceStrings [ "." ] [ "" ] version;
+              envFor =
+                version:
+                (pkgs.${attrFor version}.withPackages (ps: [
+                  ps.numpy
+                  ps.scipy
+                ])).outPath;
+            in
+            builtins.hashString "sha256" (builtins.concatStringsSep "\n" (
+              map envFor (builtins.attrNames (import ./nix/wheels.nix))
+              ++ [ flake.devShells.x86_64-linux.default.outPath ]
+            ))')
+
+          if [[ "$fingerprint" == "$(cat nix/.verified 2>/dev/null)" ]]; then
+              echo "Derivations unchanged since the last verified run, skipping build."
+              exit 0
+          fi
 
           # Numpy only warns when mkl-service is missing, so import mkl
           # directly. Solving an eigenproblem confirms mkl itself is loadable.
@@ -111,6 +145,11 @@ jobs:
 
           # The devshell tracks the newest supported python.
           nix develop -c python -c 'import mkl, numpy, scipy'
+
+          # Record the verified state only once every check above has passed.
+          # The fingerprint covers what is built, not how it is checked, so
+          # delete this file by hand when changing the checks themselves.
+          echo "$fingerprint" > nix/.verified
 
       - name: Commit nix derivations
         run: |

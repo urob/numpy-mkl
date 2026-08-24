@@ -202,13 +202,14 @@ jobs:
                   python -c 'import pkgconf; print(pkgconf.get_executable())')" >>$GITHUB_ENV
               ;;&
             scipy)
-              # Gcc is required for scipy. Rtools45 (gcc 14) matches upstream's wheel builder
-              # and ships with the runner image, so just put it on PATH (as upstream does).
-              # Assert it exists: C:\mingw64\bin is on PATH by default, so an image that bumps
-              # rtools would silently swap the toolchain instead of failing.
-              [[ -d /c/rtools45/ucrt64/bin ]] \
-                  || { echo "::error::rtools45 not found on image"; exit 1; }
-              echo "c:\rtools45\ucrt64\bin;" >>$GITHUB_PATH
+              # Gcc and gfortran are required for scipy: MSVC ships no Fortran compiler and
+              # cannot compile Pythran. The image provides the MinGW-Builds toolchain in
+              # C:\mingw64\bin and puts it on PATH, so nothing needs installing. (Upstream
+              # resolves to the same toolchain; its rtools45 PATH entry holds no compilers.)
+              # Scipy 2.0 drops Fortran -- switch this probe to gcc then; gcc stays required
+              # for Pythran. Print the version: the toolchain floats with the runner image,
+              # and compiler changes shift numerical results (see tools/scipy_tests.py).
+              gfortran --version || { echo "::error::no gfortran on PATH"; exit 1; }
               ;;&
           esac
         if: runner.os == 'windows'
@@ -228,6 +229,8 @@ jobs:
 
             scipy)
               # MSVC is unable to compile Pythran, use gcc or set -Duse-pythran=false.
+              # Scipy defaults to the g77-abi if it detects mkl, adding it here explicitly
+              # as redundent fallback. If there's issues, check upstream for new recommendation.
               args="-Csetup-args=-Dblas=mkl-sdl \
                     -Csetup-args=-Dlapack=mkl-sdl \
                     -Csetup-args=-Duse-g77-abi=true"

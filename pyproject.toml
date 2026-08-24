@@ -15,7 +15,9 @@ dependencies = [
 
 [dependency-groups]
 build-deps = [
-    "pkgconf>=3.0.1.post0",
+    "auditwheel>=6.8.1 ; sys_platform == 'linux'",
+    "delvewheel>=1.13.0 ; sys_platform == 'win32'",
+    "pkgconf>=3.0.1.post0 ; sys_platform == 'win32'",
 ]
 
 [tool.ruff]

@@ -98,6 +98,11 @@ jobs:
           # Path to MKL sources, referenced in the final build.
           echo "MKL_VENV=$(realpath "${GITHUB_WORKSPACE}"/../../mkl)" >>$GITHUB_ENV
 
+          # Dedicated environment for the 'build-deps' group. Kept out of the workspace and
+          # passed as UV_PROJECT_ENVIRONMENT only to the steps that use the group, so that
+          # syncing it can never clobber (or be clobbered by) another venv.
+          echo "BUILD_VENV=$(realpath "${GITHUB_WORKSPACE}"/../../build-deps)" >>$GITHUB_ENV
+
       - name: Set up python
         uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
         with:
@@ -183,6 +188,8 @@ jobs:
         if: inputs.name != 'mkl-service'
 
       - name: Install Windows build dependencies
+        env:
+          UV_PROJECT_ENVIRONMENT: ${{ env.BUILD_VENV }}
         run: |
           # Use ';;&' so that every subsequent pattern is re-tested.
           case "${{ inputs.name }}" in
@@ -191,7 +198,6 @@ jobs:
               # uv.lock) rather than chocolatey, whose SourceForge download intermittently
               # times out. Point meson at the bundled binary directly: the package's
               # 'pkg-config' console script silently no-ops when PKG_CONFIG_PATH is set.
-              uv sync --frozen --only-group build-deps
               echo "PKG_CONFIG=$(uv run --frozen --only-group build-deps \
                   python -c 'import pkgconf; print(pkgconf.get_executable())')" >>$GITHUB_ENV
               ;;&
@@ -238,17 +244,23 @@ jobs:
           uv build --wheel --index https://urob.github.io/numpy-mkl ${args}
 
       - name: Repair wheel (Linux)
+        env:
+          UV_PROJECT_ENVIRONMENT: ${{ env.BUILD_VENV }}
         run: |
           mkdir -p wheelhouse
           plat="$(ldd --version | head -1 | awk '{ print $NF }' | tr '.' '_')_$(uname -m)"
-          uvx auditwheel repair "${{ env.SRC_DIR }}"/dist/*.whl -w wheelhouse \
+          uv run --frozen --only-group build-deps \
+              auditwheel repair "${{ env.SRC_DIR }}"/dist/*.whl -w wheelhouse \
               --exclude 'libmkl*' --plat=manylinux_${plat}
         if: runner.os == 'linux'
 
       - name: Repair wheel (Windows)
+        env:
+          UV_PROJECT_ENVIRONMENT: ${{ env.BUILD_VENV }}
         run: |
           mkdir -p wheelhouse
-          uvx delvewheel repair "${{ env.SRC_DIR }}"/dist/*.whl -w wheelhouse \
+          uv run --frozen --only-group build-deps \
+              delvewheel repair "${{ env.SRC_DIR }}"/dist/*.whl -w wheelhouse \
               --exclude mkl_rt.*.dll --exclude libsf_error_state.dll
         if: runner.os == 'windows'
 

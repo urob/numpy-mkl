@@ -40,7 +40,7 @@ jobs:
 
       - name: Fetch build matrix
         run: |
-          uv run tools/fetch_matrix2 ${{ inputs.name }} --config ci-targets.yaml \
+          uv run --locked tools/fetch_matrix2 ${{ inputs.name }} --config ci-targets.yaml \
             --store build.json --token ${{ secrets.GITHUB_TOKEN }} \
             ${{ inputs.force-build && '--force-build' || '' }} >matrix.json
 
@@ -382,24 +382,28 @@ jobs:
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add .
-          git commit -m "ci: Prepare release for ${{ inputs.name }}-${{ needs.meta.outputs.version }}"
+          git commit -m \
+              "ci: Prepare release for ${{ inputs.name }}-${{ needs.meta.outputs.version }}"
           git push origin HEAD:main
 
       - name: Write release notes
         run: |
-          uv run tools/release_notes templates/release.md --store build.json >release/release.md
+          uv run --locked tools/release_notes templates/release.md \
+              --store build.json >release/release.md
 
       - name: Release wheels
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${VERSION}" --title "${VERSION}" --notes-file release/release.md release/*.whl
+          gh release create "${VERSION}" --title "${VERSION}" \
+              --notes-file release/release.md release/*.whl
 
       - name: Generate index
         run: |
           # Wait 10s for release to get finished.
           sleep 10
-          uv run tools/make_index2 pypi/${{ inputs.name}}/index.html --token ${{ secrets.GITHUB_TOKEN }}
+          uv run --locked tools/make_index2 pypi/${{ inputs.name}}/index.html \
+              --token ${{ secrets.GITHUB_TOKEN }}
 
       - name: Deploy index
         working-directory: pypi

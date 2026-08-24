@@ -202,8 +202,12 @@ jobs:
                   python -c 'import pkgconf; print(pkgconf.get_executable())')" >>$GITHUB_ENV
               ;;&
             scipy)
-              # Gcc is required for scipy. Rtools45 (gcc 14) matches upstream's wheel builder.
-              choco install rtools -y --no-progress --force --version=4.5.6768
+              # Gcc is required for scipy. Rtools45 (gcc 14) matches upstream's wheel builder
+              # and ships with the runner image, so just put it on PATH (as upstream does).
+              # Assert it exists: C:\mingw64\bin is on PATH by default, so an image that bumps
+              # rtools would silently swap the toolchain instead of failing.
+              [[ -d /c/rtools45/ucrt64/bin ]] \
+                  || { echo "::error::rtools45 not found on image"; exit 1; }
               echo "c:\rtools45\ucrt64\bin;" >>$GITHUB_PATH
               ;;&
           esac

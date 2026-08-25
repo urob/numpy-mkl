@@ -42,7 +42,7 @@ def fmt(x):
     if x == 0:
         return '.'
     if x >= 10_000:
-        return f'{x / 10_000:.0f}k'
+        return f'{x / 1_000:.0f}k'
     # if x >= 1_000:
     #     return f'{x/1_000:.1f}k'
     return str(x)

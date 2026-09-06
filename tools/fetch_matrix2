@@ -2,6 +2,8 @@
 
 import argparse
 import json
+import os
+import re
 import tomllib
 from pathlib import Path
 
@@ -12,6 +14,11 @@ from packaging.version import InvalidVersion, Version
 from store_info import Build, fetch_store
 
 REQUESTS_TIMEOUT = 45
+
+# Release tags are upstream-controlled and flow into $GITHUB_ENV, so restrict them to
+# characters that cannot break out of a 'key=value' line. PEP 440 also permits '!' and
+# '+', but a tag carrying either already fails the round-trip check in parse_release_tag.
+TAG_RE = re.compile(r'\A[A-Za-z0-9._-]+\Z')
 
 RELEASES = 'https://api.github.com/repos/{repo}/releases'
 PYPROJECT = 'https://raw.githubusercontent.com/{repo}/refs/tags/{tag}/pyproject.toml'
@@ -87,6 +94,11 @@ class FetchPackageData:
             return None, tag
         if Version(tag).__str__() != version or release['prerelease']:
             return None, tag
+        # Anchor with \A/\Z: '$' would still match ahead of a trailing newline, and the
+        # PEP 440 pattern accepts surrounding whitespace, so a newline survives the check
+        # above.
+        if not TAG_RE.match(tag):
+            raise FetchPackageDataError(f'Refusing unsafe release tag {tag!r}')
         return version, tag
 
     def version_is_excluded(self, version):
@@ -175,7 +187,12 @@ if __name__ == '__main__':
     parser.add_argument('package_name', type=str, help='package name')
     parser.add_argument('-c', '--config', type=str, help='path to config file')
     parser.add_argument('-s', '--store', type=str, help='path to build store')
-    parser.add_argument('--token', type=str, help='github_token for authentication')
+    parser.add_argument(
+        '--token',
+        type=str,
+        default=os.environ.get('GITHUB_TOKEN'),
+        help='github token for authentication (default: $GITHUB_TOKEN)',
+    )
 
     parser.add_argument(
         '-r', '--runners', action='append', type=str, help='overwrite runners config'

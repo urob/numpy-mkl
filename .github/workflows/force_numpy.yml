@@ -3,12 +3,13 @@ name: Rebuild numpy
 on:
   workflow_dispatch:
 
-permissions:
-  contents: write
+permissions: {}
 
 jobs:
   numpy:
     uses: ./.github/workflows/wheels.yml
+    permissions:
+      contents: write
     with:
       name: numpy
       repo: numpy/numpy

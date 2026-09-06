@@ -3,12 +3,13 @@ name: Rebuild mkl-service
 on:
   workflow_dispatch:
 
-permissions:
-  contents: write
+permissions: {}
 
 jobs:
   mkl-service:
     uses: ./.github/workflows/wheels.yml
+    permissions:
+      contents: write
     with:
       name: mkl-service
       repo: IntelPython/mkl-service

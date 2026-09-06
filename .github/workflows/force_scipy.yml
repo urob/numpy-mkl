@@ -3,12 +3,13 @@ name: Rebuild scipy
 on:
   workflow_dispatch:
 
-permissions:
-  contents: write
+permissions: {}
 
 jobs:
   scipy:
     uses: ./.github/workflows/wheels.yml
+    permissions:
+      contents: write
     with:
       name: scipy
       repo: scipy/scipy

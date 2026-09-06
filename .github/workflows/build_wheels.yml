@@ -5,17 +5,20 @@ on:
   schedule:
     - cron: "15 22 * * 0" # 22.15 UTC every Sunday
 
-permissions:
-  contents: write
+permissions: {}
 
 jobs:
   # Refresh the mirrored PyPI links before building, so that wheels are resolved and
   # tested against an index that carries the latest MKL runtime they pin.
   links:
     uses: ./.github/workflows/links.yml
+    permissions:
+      contents: write
 
   mkl-service:
     uses: ./.github/workflows/wheels.yml
+    permissions:
+      contents: write
     with:
       name: mkl-service
       repo: IntelPython/mkl-service
@@ -23,6 +26,8 @@ jobs:
 
   numpy:
     uses: ./.github/workflows/wheels.yml
+    permissions:
+      contents: write
     with:
       name: numpy
       repo: numpy/numpy
@@ -30,6 +35,8 @@ jobs:
 
   scipy:
     uses: ./.github/workflows/wheels.yml
+    permissions:
+      contents: write
     with:
       name: scipy
       repo: scipy/scipy

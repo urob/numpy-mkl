@@ -24,6 +24,8 @@ jobs:
   meta:
     if: github.repository == 'urob/numpy-mkl'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       tag: ${{ env.tag }}
       version: ${{ env.version }}
@@ -39,9 +41,11 @@ jobs:
           version-file: "pyproject.toml"
 
       - name: Fetch build matrix
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           uv run --locked tools/fetch_matrix2 ${{ inputs.name }} --config ci-targets.yaml \
-            --store build.json --token ${{ secrets.GITHUB_TOKEN }} \
+            --store build.json \
             ${{ inputs.force-build && '--force-build' || '' }} >matrix.json
 
           echo "tag=$(jq -rc '."tag"' matrix.json)" >>$GITHUB_ENV
@@ -57,6 +61,8 @@ jobs:
     if: ${{ needs.meta.outputs.matrix != 'null' }}
     runs-on: ${{ matrix.runner }}
     container: ${{ matrix.container }}
+    permissions:
+      contents: read
     strategy:
       matrix: ${{ fromJson(needs.meta.outputs.matrix) }}
       fail-fast: false
@@ -433,11 +439,12 @@ jobs:
               --notes-file release/release.md release/*.whl
 
       - name: Generate index
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Wait 10s for release to get finished.
           sleep 10
-          uv run --locked tools/make_index2 pypi/${{ inputs.name}}/index.html \
-              --token ${{ secrets.GITHUB_TOKEN }}
+          uv run --locked tools/make_index2 pypi/${{ inputs.name}}/index.html
 
       - name: Deploy index
         working-directory: pypi

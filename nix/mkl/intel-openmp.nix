@@ -33,7 +33,7 @@ buildPythonPackage rec {
   doCheck = false;
 
   meta = {
-    description = "Intel OpenMP* Runtime Library";
+    description = "Intel® OpenMP* Runtime Library";
     homepage = "https://pypi.org/project/intel-openmp/";
     license = "Intel End User License Agreement for Developer Tools";
     platforms = [ "x86_64-linux" ];

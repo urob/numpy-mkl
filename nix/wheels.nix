@@ -73,9 +73,9 @@
       hash = "sha256-TVomRJgYqK69SyqvaykYMeaR+c90sVLfSbmc9Iu9U2A=";
     };
     mkl-service = {
-      version = "2.8.0";
-      url = "https://github.com/urob/numpy-mkl/releases/download/0.3.9/mkl_service-2.8.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl";
-      hash = "sha256-5rjPQRU4jHo7gfKvu6GIP+9CmiiCXLsjNvCKCwn0zF0=";
+      version = "2.9.0";
+      url = "https://github.com/urob/numpy-mkl/releases/download/0.3.15/mkl_service-2.9.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl";
+      hash = "sha256-VdRek72Tm8d3IXORQfbNXQn6DsiKgWZXHeCiwmd5Mto=";
     };
     numpy = {
       version = "2.5.3";
@@ -125,9 +125,9 @@
       hash = "sha256-TVomRJgYqK69SyqvaykYMeaR+c90sVLfSbmc9Iu9U2A=";
     };
     mkl-service = {
-      version = "2.8.0";
-      url = "https://github.com/urob/numpy-mkl/releases/download/0.3.9/mkl_service-2.8.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl";
-      hash = "sha256-V3YEDWSW6CTYhGwekUGS5mdPMRBWDmo5UpnMJdciMdg=";
+      version = "2.9.0";
+      url = "https://github.com/urob/numpy-mkl/releases/download/0.3.15/mkl_service-2.9.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl";
+      hash = "sha256-LKOGIgtv9BTJvnddw5sK2Uhiz2MK0R9HOvhSRhb+cNk=";
     };
     numpy = {
       version = "2.5.3";
@@ -177,9 +177,9 @@
       hash = "sha256-TVomRJgYqK69SyqvaykYMeaR+c90sVLfSbmc9Iu9U2A=";
     };
     mkl-service = {
-      version = "2.8.0";
-      url = "https://github.com/urob/numpy-mkl/releases/download/0.3.9/mkl_service-2.8.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl";
-      hash = "sha256-OM1NO+s4SldU6UfxVWuBPbnXj/7rNE/f+d4uPIniso0=";
+      version = "2.9.0";
+      url = "https://github.com/urob/numpy-mkl/releases/download/0.3.15/mkl_service-2.9.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl";
+      hash = "sha256-h+z2QjoeDmeezWChbSVIk23oHAqJTIXqrqt3QhjtbKM=";
     };
     numpy = {
       version = "2.5.3";

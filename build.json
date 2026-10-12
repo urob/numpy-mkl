@@ -689,6 +689,30 @@
   "numpy-2.5.3-cp314-windows": {
     "mkl": "2026.1.0"
   },
+  "numpy-2.5.4-cp312-linux": {
+    "mkl": "2026.1.0"
+  },
+  "numpy-2.5.4-cp312-windows": {
+    "mkl": "2026.1.0"
+  },
+  "numpy-2.5.4-cp313-linux": {
+    "mkl": "2026.1.0"
+  },
+  "numpy-2.5.4-cp313-windows": {
+    "mkl": "2026.1.0"
+  },
+  "numpy-2.5.4-cp314-linux": {
+    "mkl": "2026.1.0"
+  },
+  "numpy-2.5.4-cp314-windows": {
+    "mkl": "2026.1.0"
+  },
+  "numpy-2.5.4-cp315-linux": {
+    "mkl": "2026.1.0"
+  },
+  "numpy-2.5.4-cp315-windows": {
+    "mkl": "2026.1.0"
+  },
   "scipy-1.15.2-cp310-linux": {
     "mkl": "2025.1.0"
   },

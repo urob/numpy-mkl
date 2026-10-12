@@ -1,6 +1,6 @@
 [project]
 name = "numpy-mkl"
-version = "0.3.17"
+version = "0.3.18"
 
 description = "NumPy and SciPy wheels with MKL support"
 authors = [{name = "Robert Ulbricht"}]

@@ -14,7 +14,7 @@
       pkgs = import nixpkgs { inherit system overlays; };
 
       # Select python version here, or set to python3 for default.
-      python = with pkgs; python314;
+      python = with pkgs; python315;
     in
     {
       devShells.${system}.default = pkgs.mkShellNoCC {

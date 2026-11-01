@@ -108,14 +108,14 @@ wheels = [
 
 [[package]]
 name = "delvewheel"
-version = "1.13.1"
+version = "1.13.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pefile" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/36/8d/ad1ecad995732a6c53086ce3bf20479d37a970acc80b7bdb4ab1eb156f2e/delvewheel-1.13.1.tar.gz", hash = "sha256:ae445f35f411c367f5b350431ac5f1435af8128bff31ccf34035a409704da8c6", size = 64796, upload-time = "2026-08-28T18:31:07.461Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9e/9b/ace748c3166f6668b4b4eb6c6b57fafb6bea358f948f7a2762c2051be9b1/delvewheel-1.13.2.tar.gz", hash = "sha256:e04b40d8186d80d3ef74dc8571b5d15026b7a8858e89312692a2b09fbcc67b0e", size = 64916, upload-time = "2026-10-09T14:13:18.316Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ea/d0/fc48bf4c00b80c1ced5ce3740ea0c5d040758dafce385275e5de559375a4/delvewheel-1.13.1-py3-none-any.whl", hash = "sha256:1b3bc696193a57e322b8bfd644de240be6e003066aae44cc3d5aef8cbee22ca3", size = 60375, upload-time = "2026-08-28T18:31:06.18Z" },
+    { url = "https://files.pythonhosted.org/packages/e4/05/ed05a24fb628232b68c4a0c701865bf0c2b3eb79cfbd14b1cde11c55edea/delvewheel-1.13.2-py3-none-any.whl", hash = "sha256:acdb03e1d7040982db65e525065f08163e9dedad54eeb8c7038be61f76c08816", size = 60391, upload-time = "2026-10-09T14:13:16.998Z" },
 ]
 
 [[package]]
@@ -157,8 +157,8 @@ requires-dist = [
 [package.metadata.requires-dev]
 build-deps = [
     { name = "auditwheel", marker = "sys_platform == 'linux'", specifier = ">=6.8.2" },
-    { name = "delvewheel", marker = "sys_platform == 'win32'", specifier = ">=1.13.1" },
-    { name = "pkgconf", marker = "sys_platform == 'win32'", specifier = ">=3.0.1.post0" },
+    { name = "delvewheel", marker = "sys_platform == 'win32'", specifier = ">=1.13.2" },
+    { name = "pkgconf", marker = "sys_platform == 'win32'", specifier = ">=3.0.7.post0" },
     { name = "wheel", marker = "sys_platform == 'win32'", specifier = ">=0.45.1" },
 ]
 
@@ -182,16 +182,16 @@ wheels = [
 
 [[package]]
 name = "pkgconf"
-version = "3.0.1.post0"
+version = "3.0.7.post0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama", marker = "os_name == 'nt'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c9/4c/ec8bcd8b1705fa5294760ec9f54e7c88a1e75d66b41e0ff405f74a4fd4f4/pkgconf-3.0.1.post0.tar.gz", hash = "sha256:abaa859ea40b4bffb455d59a5836f92c1a8d234e071110b7bd0aeee8d447a3cc", size = 276446, upload-time = "2026-07-13T04:50:02.507Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d1/fe/95bf0093f0f1bf02ca9aa935c73a8757863cdfdcd8f7d750d83e10d8d154/pkgconf-3.0.7.post0.tar.gz", hash = "sha256:26db22dbba85a818604ff49260c98748af9ded2d145eb6688dbc6ace055a1668", size = 293578, upload-time = "2026-09-22T02:51:34.002Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d5/59/ac8d9d791358c552d8a2e09b37da188df4f9463a06da992437c679e5361f/pkgconf-3.0.1.post0-py3-none-win32.whl", hash = "sha256:f6a58e46f0553ad5c35e4127a4b9ce084e002c1688ada9aed769da3d1b37de99", size = 62087, upload-time = "2026-07-13T04:49:59.322Z" },
-    { url = "https://files.pythonhosted.org/packages/ca/ef/bbc9729ef600245edd84b0970eadbdf063cdf5e5d988136c80c88c58cab9/pkgconf-3.0.1.post0-py3-none-win_amd64.whl", hash = "sha256:5c38b651f49a32fb117aaaca5951853452aed3834d3b7126135c831d92e055da", size = 62087, upload-time = "2026-07-13T04:50:00.344Z" },
-    { url = "https://files.pythonhosted.org/packages/9c/d8/94213a62828e29fe7d8c662cf2b722263e1e46100c6c10d944a0ab5332d0/pkgconf-3.0.1.post0-py3-none-win_arm64.whl", hash = "sha256:d625e6db266484f64c1fb5961519ab776ba10fd740630f1fa75765dc38f8ee92", size = 58253, upload-time = "2026-07-13T04:50:01.452Z" },
+    { url = "https://files.pythonhosted.org/packages/a8/b2/e359c9573000f7e02c1cd35105a060403e7b47ad2e7f2cf6f3bd4fb8be80/pkgconf-3.0.7.post0-py3-none-win32.whl", hash = "sha256:9d60ee4d9f942564a214027347a51b12c5ffac1cf84a3b9e6ad707c35fae45c0", size = 64584, upload-time = "2026-09-22T02:51:30.933Z" },
+    { url = "https://files.pythonhosted.org/packages/e2/53/37ee781984b17e16c9b09726c438a327b242721166213411623814b89ddf/pkgconf-3.0.7.post0-py3-none-win_amd64.whl", hash = "sha256:e7906bb5ec1d0d074e397466075a8545f1c50cb11710768644f222ba8acebc7f", size = 64585, upload-time = "2026-09-22T02:51:31.96Z" },
+    { url = "https://files.pythonhosted.org/packages/94/b7/8755f13caa6a1ceba992cabf6aec4684a9681457dc502925a9aeca0a7937/pkgconf-3.0.7.post0-py3-none-win_arm64.whl", hash = "sha256:3716a2a2b2dca3466589b371e5bfa88bb5a4e84e4e7a3771ce14b112a0965f05", size = 59158, upload-time = "2026-09-22T02:51:32.977Z" },
 ]
 
 [[package]]

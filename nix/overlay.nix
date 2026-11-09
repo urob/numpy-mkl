@@ -12,7 +12,6 @@ let
     intel-cmplr-lib-ur = pyFinal.callPackage ./mkl/intel-cmplr-lib-ur.nix { };
     intel-openmp = pyFinal.callPackage ./mkl/intel-openmp.nix { };
     mkl = pyFinal.callPackage ./mkl/mkl.nix { };
-    onemkl-license = pyFinal.callPackage ./mkl/onemkl-license.nix { };
     tbb = pyFinal.callPackage ./mkl/tbb.nix { };
     tcmlib = pyFinal.callPackage ./mkl/tcmlib.nix { };
     umf = pyFinal.callPackage ./mkl/umf.nix { };

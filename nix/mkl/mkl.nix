@@ -21,7 +21,6 @@ buildPythonPackage rec {
 
   dependencies = [
     (callPackage ./intel-openmp.nix { })
-    (callPackage ./onemkl-license.nix { })
     (callPackage ./tbb.nix { })
   ];
 

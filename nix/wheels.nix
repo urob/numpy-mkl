@@ -4,73 +4,21 @@
 # `uv pip compile --index-url https://urob.github.io/numpy-mkl --python-version <key>
 #  --python-platform x86_64-manylinux_2_28`.
 {
-  "3.11" = {
-    intel-cmplr-lib-ur = {
-      version = "2025.3.3";
-      url = "https://files.pythonhosted.org/packages/82/ca/9e27494641de36448c4783a1ff67f55b546733beb39fb8abe72960b756a4/intel_cmplr_lib_ur-2025.3.3-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-oYzq3TNq0vgvR5dyFN3JRWjFoz4mLuO50bNjG3iXtmk=";
-    };
-    intel-openmp = {
-      version = "2025.3.3";
-      url = "https://files.pythonhosted.org/packages/3f/12/5e07caf359d5bedd67b40e84e2faec6b5a3ad5da27ce151860fe6b270935/intel_openmp-2025.3.3-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-CyCkmwQa/IweybV0bwBsKqHSR1qf5tKe1VHbp8uE2as=";
-    };
-    mkl = {
-      version = "2025.3.1";
-      url = "https://files.pythonhosted.org/packages/b3/ee/76755ca0ec9626835e0d024c369b968f24eadce2106a7884404720670623/mkl-2025.3.1-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-2zHln6No3U+kW0lDUfS34OYgSwjX2yeDYRjE4TcOsBE=";
-    };
-    mkl-service = {
-      version = "2.6.1";
-      url = "https://github.com/urob/numpy-mkl/releases/download/0.2.7/mkl_service-2.6.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl";
-      hash = "sha256-mzIVfhlQguLfpbjW/MwW/+UuGQ5IcaAT9eyzLw/DeQY=";
-    };
-    numpy = {
-      version = "2.4.4";
-      url = "https://github.com/urob/numpy-mkl/releases/download/0.2.0/numpy-2.4.4-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
-      hash = "sha256-GtWnbH2+zcPKA5XuR2I0s6ld3jQpUusuIq/1cXkVm4Q=";
-    };
-    onemkl-license = {
-      version = "2025.3.1";
-      url = "https://files.pythonhosted.org/packages/3e/1d/7acbedb07bf4c71cc499527c25a3ef60bf83ed41b8918e986ed7a4573bd4/onemkl_license-2025.3.1-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-tiY6Ab8pwE6mg+qxcS62t0wri3InIvRv2QeE7Yd4wJM=";
-    };
-    scipy = {
-      version = "1.17.1";
-      url = "https://github.com/urob/numpy-mkl/releases/download/0.2.4/scipy-1.17.1-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
-      hash = "sha256-7ZcieyuBywzspIdAdsnrnl9A0q1plY3/6rUudQaxnUE=";
-    };
-    tbb = {
-      version = "2022.3.1";
-      url = "https://files.pythonhosted.org/packages/08/59/8d381a2cfe8d36c4f4ff9f94769ff2809bfc16014d888360b0e24c7e5c6b/tbb-2022.3.1-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-U0wInsprzxSECGhMFWIp1fCcAdMjtoWxVzn0GYW1Kdc=";
-    };
-    tcmlib = {
-      version = "1.5.0";
-      url = "https://files.pythonhosted.org/packages/60/24/aa409bb20703acc70cf4d3bc620a55c789639c2995b2667fb44ae7236ec9/tcmlib-1.5.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-nXwBz/Narpv1OQtiBoDr3xCn0hHCLWSIonoClQLn0Ko=";
-    };
-    umf = {
-      version = "1.0.3";
-      url = "https://files.pythonhosted.org/packages/4c/b9/fe8c54eab5a3fdfdff1839d9299d90bfce5c467186b5c9ff9fd95d55ad64/umf-1.0.3-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-yJwJdNrtMKHKx3+3zl/5FA0Xjihrst2Rt1FIbV0KZbA=";
-    };
-  };
   "3.12" = {
     intel-cmplr-lib-ur = {
-      version = "2026.1.2";
-      url = "https://files.pythonhosted.org/packages/80/f0/b7e8305da2d2ea162599795886d03a809bf1554ec5079c59f147b506f277/intel_cmplr_lib_ur-2026.1.2-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-snIH87QtEs6IzVPKizt6fnl1WqB6hOzPHCCfy+/kaL8=";
+      version = "2026.2.0";
+      url = "https://files.pythonhosted.org/packages/f3/5b/10acaa79feeae68db3ee7e1e712cb007c665b05000c71a7e7afdab1750e6/intel_cmplr_lib_ur-2026.2.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-DQpQmaouHjg3W1CcKoGC5xntdKplayqADd9s+9M4S4A=";
     };
     intel-openmp = {
-      version = "2026.1.2";
-      url = "https://files.pythonhosted.org/packages/8b/4d/27cb1284bee222fdd4f4280a651c264031bc1f8ebbdbd29cdfd0f906a466/intel_openmp-2026.1.2-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-RhIjGjYF24kSZcHYzEr0nuZgCdxV8kASdwqfrz2Kw14=";
+      version = "2026.2.0";
+      url = "https://files.pythonhosted.org/packages/79/fd/8c80ef4b540e62761bb62b6bde10c17339218f6a25e27aedac816ac5c4c1/intel_openmp-2026.2.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-Iwiho+dHGKnNjMzyGMNNjNgLQ9O4nfuwGzje4gXFCYA=";
     };
     mkl = {
-      version = "2026.1.0";
-      url = "https://files.pythonhosted.org/packages/61/da/4921e17b1f455f7fed30d5cc0964f3289eee6a6cb03cdf7d5e20c14bd025/mkl-2026.1.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-TVomRJgYqK69SyqvaykYMeaR+c90sVLfSbmc9Iu9U2A=";
+      version = "2026.2.0";
+      url = "https://files.pythonhosted.org/packages/dc/51/3447e212ae3b09f3da7f0ae1b834aa452b8114cfffbb7a8f702715cb3706/mkl-2026.2.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-6qsYdc6fR6s8ZtVjLO8GuvdowFeB8vKIR728Q0NQDtc=";
     };
     mkl-service = {
       version = "2.9.0";
@@ -82,47 +30,42 @@
       url = "https://github.com/urob/numpy-mkl/releases/download/0.3.17/numpy-2.5.4-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
       hash = "sha256-zIdJ36anyoj7P/ZxGWK3T6SWBFzxwGAD/kKLJ77qGO4=";
     };
-    onemkl-license = {
-      version = "2026.1.0";
-      url = "https://files.pythonhosted.org/packages/e3/ef/8437c187319e779a76f4dbb468a1863d729297d79a1b5f44b10a58c96ec2/onemkl_license-2026.1.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-Of2ClkivksngPCK6Io8HF02Cmqov48X2zXBzuOuKmAU=";
-    };
     scipy = {
       version = "1.18.1";
       url = "https://github.com/urob/numpy-mkl/releases/download/0.3.12/scipy-1.18.1-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
       hash = "sha256-F4kTg3Wnf2zL3utZwCEMMMDGwJALr0LtIPUUhT9uFv0=";
     };
     tbb = {
-      version = "2023.1.0";
-      url = "https://files.pythonhosted.org/packages/25/0c/0266c71e3fa50a71db5ce8a1d0807863df3215c5f7b5fe7c98b257561138/tbb-2023.1.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-ZK01JBxzallUmPU0Or7I6qogPp/g29v0uG03xaOrHZw=";
+      version = "2023.2.0";
+      url = "https://files.pythonhosted.org/packages/59/fd/8ca476c7b2513b1e64e08d3f5404c8ed19b34d0213000b5e23b3a91676c2/tbb-2023.2.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-fYBhW26XDxFnH6BbbqqUg6yGT7/lJawoAnGnizeHC3w=";
     };
     tcmlib = {
-      version = "1.5.0";
-      url = "https://files.pythonhosted.org/packages/60/24/aa409bb20703acc70cf4d3bc620a55c789639c2995b2667fb44ae7236ec9/tcmlib-1.5.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-nXwBz/Narpv1OQtiBoDr3xCn0hHCLWSIonoClQLn0Ko=";
+      version = "1.6.0";
+      url = "https://files.pythonhosted.org/packages/a4/95/d2616129c971d989c1f5ec2ea697a6885165570c69d9fa50bfbde8195d26/tcmlib-1.6.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-RsJJGYi/0YxHM+6wispqOGcGpJe5LMUdFV833eoAPBQ=";
     };
     umf = {
-      version = "1.1.0";
-      url = "https://files.pythonhosted.org/packages/c4/72/2e0182f4e6a727a15d0a8a99a82182a4f5bdec1a4f5767acfd2abdc72070/umf-1.1.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-VnFSxe5rjhbMVrKaipprkY3h/r+Jh39x6i6CR+85/DI=";
+      version = "1.2.0";
+      url = "https://files.pythonhosted.org/packages/e9/98/4df9fdfac2af58f63652936c6f90c4dbf7c237f6aed2c4310c9583e177b0/umf-1.2.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-I40Yb92enA/hSJ2pWxmwt5BF/ibEqpi9CgIqKjYDwZU=";
     };
   };
   "3.13" = {
     intel-cmplr-lib-ur = {
-      version = "2026.1.2";
-      url = "https://files.pythonhosted.org/packages/80/f0/b7e8305da2d2ea162599795886d03a809bf1554ec5079c59f147b506f277/intel_cmplr_lib_ur-2026.1.2-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-snIH87QtEs6IzVPKizt6fnl1WqB6hOzPHCCfy+/kaL8=";
+      version = "2026.2.0";
+      url = "https://files.pythonhosted.org/packages/f3/5b/10acaa79feeae68db3ee7e1e712cb007c665b05000c71a7e7afdab1750e6/intel_cmplr_lib_ur-2026.2.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-DQpQmaouHjg3W1CcKoGC5xntdKplayqADd9s+9M4S4A=";
     };
     intel-openmp = {
-      version = "2026.1.2";
-      url = "https://files.pythonhosted.org/packages/8b/4d/27cb1284bee222fdd4f4280a651c264031bc1f8ebbdbd29cdfd0f906a466/intel_openmp-2026.1.2-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-RhIjGjYF24kSZcHYzEr0nuZgCdxV8kASdwqfrz2Kw14=";
+      version = "2026.2.0";
+      url = "https://files.pythonhosted.org/packages/79/fd/8c80ef4b540e62761bb62b6bde10c17339218f6a25e27aedac816ac5c4c1/intel_openmp-2026.2.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-Iwiho+dHGKnNjMzyGMNNjNgLQ9O4nfuwGzje4gXFCYA=";
     };
     mkl = {
-      version = "2026.1.0";
-      url = "https://files.pythonhosted.org/packages/61/da/4921e17b1f455f7fed30d5cc0964f3289eee6a6cb03cdf7d5e20c14bd025/mkl-2026.1.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-TVomRJgYqK69SyqvaykYMeaR+c90sVLfSbmc9Iu9U2A=";
+      version = "2026.2.0";
+      url = "https://files.pythonhosted.org/packages/dc/51/3447e212ae3b09f3da7f0ae1b834aa452b8114cfffbb7a8f702715cb3706/mkl-2026.2.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-6qsYdc6fR6s8ZtVjLO8GuvdowFeB8vKIR728Q0NQDtc=";
     };
     mkl-service = {
       version = "2.9.0";
@@ -134,47 +77,42 @@
       url = "https://github.com/urob/numpy-mkl/releases/download/0.3.17/numpy-2.5.4-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
       hash = "sha256-62mJB41pX2XTu7wsYnsM4NABjxkfNAX9yTCdWbHvp2A=";
     };
-    onemkl-license = {
-      version = "2026.1.0";
-      url = "https://files.pythonhosted.org/packages/e3/ef/8437c187319e779a76f4dbb468a1863d729297d79a1b5f44b10a58c96ec2/onemkl_license-2026.1.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-Of2ClkivksngPCK6Io8HF02Cmqov48X2zXBzuOuKmAU=";
-    };
     scipy = {
       version = "1.18.1";
       url = "https://github.com/urob/numpy-mkl/releases/download/0.3.12/scipy-1.18.1-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
       hash = "sha256-G5hunGz36NpHdSKXA/aPNFxquOaQhajkx7jZiK4SN+0=";
     };
     tbb = {
-      version = "2023.1.0";
-      url = "https://files.pythonhosted.org/packages/25/0c/0266c71e3fa50a71db5ce8a1d0807863df3215c5f7b5fe7c98b257561138/tbb-2023.1.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-ZK01JBxzallUmPU0Or7I6qogPp/g29v0uG03xaOrHZw=";
+      version = "2023.2.0";
+      url = "https://files.pythonhosted.org/packages/59/fd/8ca476c7b2513b1e64e08d3f5404c8ed19b34d0213000b5e23b3a91676c2/tbb-2023.2.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-fYBhW26XDxFnH6BbbqqUg6yGT7/lJawoAnGnizeHC3w=";
     };
     tcmlib = {
-      version = "1.5.0";
-      url = "https://files.pythonhosted.org/packages/60/24/aa409bb20703acc70cf4d3bc620a55c789639c2995b2667fb44ae7236ec9/tcmlib-1.5.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-nXwBz/Narpv1OQtiBoDr3xCn0hHCLWSIonoClQLn0Ko=";
+      version = "1.6.0";
+      url = "https://files.pythonhosted.org/packages/a4/95/d2616129c971d989c1f5ec2ea697a6885165570c69d9fa50bfbde8195d26/tcmlib-1.6.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-RsJJGYi/0YxHM+6wispqOGcGpJe5LMUdFV833eoAPBQ=";
     };
     umf = {
-      version = "1.1.0";
-      url = "https://files.pythonhosted.org/packages/c4/72/2e0182f4e6a727a15d0a8a99a82182a4f5bdec1a4f5767acfd2abdc72070/umf-1.1.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-VnFSxe5rjhbMVrKaipprkY3h/r+Jh39x6i6CR+85/DI=";
+      version = "1.2.0";
+      url = "https://files.pythonhosted.org/packages/e9/98/4df9fdfac2af58f63652936c6f90c4dbf7c237f6aed2c4310c9583e177b0/umf-1.2.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-I40Yb92enA/hSJ2pWxmwt5BF/ibEqpi9CgIqKjYDwZU=";
     };
   };
   "3.14" = {
     intel-cmplr-lib-ur = {
-      version = "2026.1.2";
-      url = "https://files.pythonhosted.org/packages/80/f0/b7e8305da2d2ea162599795886d03a809bf1554ec5079c59f147b506f277/intel_cmplr_lib_ur-2026.1.2-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-snIH87QtEs6IzVPKizt6fnl1WqB6hOzPHCCfy+/kaL8=";
+      version = "2026.2.0";
+      url = "https://files.pythonhosted.org/packages/f3/5b/10acaa79feeae68db3ee7e1e712cb007c665b05000c71a7e7afdab1750e6/intel_cmplr_lib_ur-2026.2.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-DQpQmaouHjg3W1CcKoGC5xntdKplayqADd9s+9M4S4A=";
     };
     intel-openmp = {
-      version = "2026.1.2";
-      url = "https://files.pythonhosted.org/packages/8b/4d/27cb1284bee222fdd4f4280a651c264031bc1f8ebbdbd29cdfd0f906a466/intel_openmp-2026.1.2-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-RhIjGjYF24kSZcHYzEr0nuZgCdxV8kASdwqfrz2Kw14=";
+      version = "2026.2.0";
+      url = "https://files.pythonhosted.org/packages/79/fd/8c80ef4b540e62761bb62b6bde10c17339218f6a25e27aedac816ac5c4c1/intel_openmp-2026.2.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-Iwiho+dHGKnNjMzyGMNNjNgLQ9O4nfuwGzje4gXFCYA=";
     };
     mkl = {
-      version = "2026.1.0";
-      url = "https://files.pythonhosted.org/packages/61/da/4921e17b1f455f7fed30d5cc0964f3289eee6a6cb03cdf7d5e20c14bd025/mkl-2026.1.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-TVomRJgYqK69SyqvaykYMeaR+c90sVLfSbmc9Iu9U2A=";
+      version = "2026.2.0";
+      url = "https://files.pythonhosted.org/packages/dc/51/3447e212ae3b09f3da7f0ae1b834aa452b8114cfffbb7a8f702715cb3706/mkl-2026.2.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-6qsYdc6fR6s8ZtVjLO8GuvdowFeB8vKIR728Q0NQDtc=";
     };
     mkl-service = {
       version = "2.9.0";
@@ -186,47 +124,42 @@
       url = "https://github.com/urob/numpy-mkl/releases/download/0.3.17/numpy-2.5.4-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
       hash = "sha256-9N50OWKDtugN0fFGVYg8jTb5Rw/rGup7aKr7irnVN+w=";
     };
-    onemkl-license = {
-      version = "2026.1.0";
-      url = "https://files.pythonhosted.org/packages/e3/ef/8437c187319e779a76f4dbb468a1863d729297d79a1b5f44b10a58c96ec2/onemkl_license-2026.1.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-Of2ClkivksngPCK6Io8HF02Cmqov48X2zXBzuOuKmAU=";
-    };
     scipy = {
       version = "1.18.1";
       url = "https://github.com/urob/numpy-mkl/releases/download/0.3.12/scipy-1.18.1-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
       hash = "sha256-sZyEHDLGDx0kW3C1+zkn3FWtMSt0vTBIj3C9qr+4c0c=";
     };
     tbb = {
-      version = "2023.1.0";
-      url = "https://files.pythonhosted.org/packages/25/0c/0266c71e3fa50a71db5ce8a1d0807863df3215c5f7b5fe7c98b257561138/tbb-2023.1.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-ZK01JBxzallUmPU0Or7I6qogPp/g29v0uG03xaOrHZw=";
+      version = "2023.2.0";
+      url = "https://files.pythonhosted.org/packages/59/fd/8ca476c7b2513b1e64e08d3f5404c8ed19b34d0213000b5e23b3a91676c2/tbb-2023.2.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-fYBhW26XDxFnH6BbbqqUg6yGT7/lJawoAnGnizeHC3w=";
     };
     tcmlib = {
-      version = "1.5.0";
-      url = "https://files.pythonhosted.org/packages/60/24/aa409bb20703acc70cf4d3bc620a55c789639c2995b2667fb44ae7236ec9/tcmlib-1.5.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-nXwBz/Narpv1OQtiBoDr3xCn0hHCLWSIonoClQLn0Ko=";
+      version = "1.6.0";
+      url = "https://files.pythonhosted.org/packages/a4/95/d2616129c971d989c1f5ec2ea697a6885165570c69d9fa50bfbde8195d26/tcmlib-1.6.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-RsJJGYi/0YxHM+6wispqOGcGpJe5LMUdFV833eoAPBQ=";
     };
     umf = {
-      version = "1.1.0";
-      url = "https://files.pythonhosted.org/packages/c4/72/2e0182f4e6a727a15d0a8a99a82182a4f5bdec1a4f5767acfd2abdc72070/umf-1.1.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-VnFSxe5rjhbMVrKaipprkY3h/r+Jh39x6i6CR+85/DI=";
+      version = "1.2.0";
+      url = "https://files.pythonhosted.org/packages/e9/98/4df9fdfac2af58f63652936c6f90c4dbf7c237f6aed2c4310c9583e177b0/umf-1.2.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-I40Yb92enA/hSJ2pWxmwt5BF/ibEqpi9CgIqKjYDwZU=";
     };
   };
   "3.15" = {
     intel-cmplr-lib-ur = {
-      version = "2026.1.2";
-      url = "https://files.pythonhosted.org/packages/80/f0/b7e8305da2d2ea162599795886d03a809bf1554ec5079c59f147b506f277/intel_cmplr_lib_ur-2026.1.2-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-snIH87QtEs6IzVPKizt6fnl1WqB6hOzPHCCfy+/kaL8=";
+      version = "2026.2.0";
+      url = "https://files.pythonhosted.org/packages/f3/5b/10acaa79feeae68db3ee7e1e712cb007c665b05000c71a7e7afdab1750e6/intel_cmplr_lib_ur-2026.2.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-DQpQmaouHjg3W1CcKoGC5xntdKplayqADd9s+9M4S4A=";
     };
     intel-openmp = {
-      version = "2026.1.2";
-      url = "https://files.pythonhosted.org/packages/8b/4d/27cb1284bee222fdd4f4280a651c264031bc1f8ebbdbd29cdfd0f906a466/intel_openmp-2026.1.2-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-RhIjGjYF24kSZcHYzEr0nuZgCdxV8kASdwqfrz2Kw14=";
+      version = "2026.2.0";
+      url = "https://files.pythonhosted.org/packages/79/fd/8c80ef4b540e62761bb62b6bde10c17339218f6a25e27aedac816ac5c4c1/intel_openmp-2026.2.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-Iwiho+dHGKnNjMzyGMNNjNgLQ9O4nfuwGzje4gXFCYA=";
     };
     mkl = {
-      version = "2026.1.0";
-      url = "https://files.pythonhosted.org/packages/61/da/4921e17b1f455f7fed30d5cc0964f3289eee6a6cb03cdf7d5e20c14bd025/mkl-2026.1.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-TVomRJgYqK69SyqvaykYMeaR+c90sVLfSbmc9Iu9U2A=";
+      version = "2026.2.0";
+      url = "https://files.pythonhosted.org/packages/dc/51/3447e212ae3b09f3da7f0ae1b834aa452b8114cfffbb7a8f702715cb3706/mkl-2026.2.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-6qsYdc6fR6s8ZtVjLO8GuvdowFeB8vKIR728Q0NQDtc=";
     };
     mkl-service = {
       version = "2.9.0";
@@ -238,30 +171,25 @@
       url = "https://github.com/urob/numpy-mkl/releases/download/0.3.17/numpy-2.5.4-cp315-cp315-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
       hash = "sha256-R33xCCP0l+nYDGOjk4w1uibThnPZqnQHWWi+pkeSNUM=";
     };
-    onemkl-license = {
-      version = "2026.1.0";
-      url = "https://files.pythonhosted.org/packages/e3/ef/8437c187319e779a76f4dbb468a1863d729297d79a1b5f44b10a58c96ec2/onemkl_license-2026.1.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-Of2ClkivksngPCK6Io8HF02Cmqov48X2zXBzuOuKmAU=";
-    };
     scipy = {
       version = "1.18.1";
       url = "https://github.com/urob/numpy-mkl/releases/download/0.3.18/scipy-1.18.1-cp315-cp315-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
       hash = "sha256-TEKc/SUYkfqC5WBqwElu8+B29HkCZuNCuRu8zCytcyw=";
     };
     tbb = {
-      version = "2023.1.0";
-      url = "https://files.pythonhosted.org/packages/25/0c/0266c71e3fa50a71db5ce8a1d0807863df3215c5f7b5fe7c98b257561138/tbb-2023.1.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-ZK01JBxzallUmPU0Or7I6qogPp/g29v0uG03xaOrHZw=";
+      version = "2023.2.0";
+      url = "https://files.pythonhosted.org/packages/59/fd/8ca476c7b2513b1e64e08d3f5404c8ed19b34d0213000b5e23b3a91676c2/tbb-2023.2.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-fYBhW26XDxFnH6BbbqqUg6yGT7/lJawoAnGnizeHC3w=";
     };
     tcmlib = {
-      version = "1.5.0";
-      url = "https://files.pythonhosted.org/packages/60/24/aa409bb20703acc70cf4d3bc620a55c789639c2995b2667fb44ae7236ec9/tcmlib-1.5.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-nXwBz/Narpv1OQtiBoDr3xCn0hHCLWSIonoClQLn0Ko=";
+      version = "1.6.0";
+      url = "https://files.pythonhosted.org/packages/a4/95/d2616129c971d989c1f5ec2ea697a6885165570c69d9fa50bfbde8195d26/tcmlib-1.6.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-RsJJGYi/0YxHM+6wispqOGcGpJe5LMUdFV833eoAPBQ=";
     };
     umf = {
-      version = "1.1.0";
-      url = "https://files.pythonhosted.org/packages/c4/72/2e0182f4e6a727a15d0a8a99a82182a4f5bdec1a4f5767acfd2abdc72070/umf-1.1.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-VnFSxe5rjhbMVrKaipprkY3h/r+Jh39x6i6CR+85/DI=";
+      version = "1.2.0";
+      url = "https://files.pythonhosted.org/packages/e9/98/4df9fdfac2af58f63652936c6f90c4dbf7c237f6aed2c4310c9583e177b0/umf-1.2.0-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-I40Yb92enA/hSJ2pWxmwt5BF/ibEqpi9CgIqKjYDwZU=";
     };
   };
 }

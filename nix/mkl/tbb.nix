@@ -33,7 +33,7 @@ buildPythonPackage rec {
   doCheck = false;
 
   meta = {
-    description = "Intel® oneAPI Threading Building Blocks (oneTBB)";
+    description = "Intel® oneAPI Threading Building Blocks";
     homepage = "https://pypi.org/project/tbb/";
     license = "Intel Simplified Software License";
     platforms = [ "x86_64-linux" ];

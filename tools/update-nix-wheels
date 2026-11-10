@@ -274,6 +274,14 @@ if __name__ == '__main__':
     with TemporaryDirectory() as tmp:
         resolutions = {}
         for python in config['defaults']['python_versions']:
+            # Free-threaded builds (e.g. '3.15t') aren't supported by the nix pipeline yet:
+            # `uv pip compile --python-version` can't target them, and the flake has no
+            # attribute mapping for them (nixpkgs calls them pythonXYFreeThreading).
+            if python.endswith('t'):
+                print(
+                    f'Skipping python {python}: free-threaded builds are not supported'
+                )
+                continue
             if resolved := Resolution(python, Path(tmp), index).resolve():
                 resolutions[python] = resolved
             else:

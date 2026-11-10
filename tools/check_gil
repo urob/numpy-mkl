@@ -1,0 +1,50 @@
+#!/usr/bin/env python
+"""Assert that importing a package keeps the GIL disabled on free-threaded Python.
+
+An extension module that does not declare free-threading support silently re-enables the
+GIL when it is imported, so a plain test run would pass even though the wheel isn't really
+free-threaded. Import every submodule (skipping test suites) and check the GIL afterwards.
+
+Usage:
+    tools/check_gil numpy mkl
+"""
+
+import argparse
+import importlib
+import pkgutil
+import sys
+import warnings
+
+
+def import_all(name):
+    pkg = importlib.import_module(name)
+    for mod in pkgutil.walk_packages(pkg.__path__, prefix=f'{name}.'):
+        parts = mod.name.split('.')
+        if any(
+            p in {'tests', 'testing', '_examples', '__main__'} or p.startswith('test_')
+            for p in parts
+        ):
+            continue
+        try:
+            importlib.import_module(mod.name)
+        except (Exception, SystemExit) as e:
+            # Optional dependencies, platform-specific modules, etc. SystemExit is caught too, so
+            # that a module that runs a CLI on import can't end the check early with rc 0.
+            print(f'skipped {mod.name}: {type(e).__name__}: {e}')
+        if sys._is_gil_enabled():
+            sys.exit(f'error: importing {mod.name} re-enabled the GIL')
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument('packages', nargs='+', help='packages to import')
+    args = parser.parse_args()
+
+    if not hasattr(sys, '_is_gil_enabled') or sys._is_gil_enabled():
+        sys.exit('error: not a free-threaded interpreter, or GIL enabled at startup')
+
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', DeprecationWarning)
+        for package in args.packages:
+            import_all(package)
+    print(f'GIL still disabled after importing all of: {", ".join(args.packages)}')

@@ -72,7 +72,9 @@ jobs:
     strategy:
       matrix: ${{ fromJson(needs.meta.outputs.matrix) }}
       fail-fast: false
-    continue-on-error: true # Release all successful builds, even if some platforms fail.
+    # Release all successful builds, even if some platforms fail. In a dry run, nothing gets
+    # released, so let failures fail the run instead.
+    continue-on-error: ${{ !inputs.dry-run }}
     defaults:
       run:
         shell: bash
@@ -325,6 +327,15 @@ jobs:
           # Set up test environment.
           uv venv testenv && source testenv/"${{ env.venv_bin }}"/activate
           uv pip install wheelhouse/*.whl --index https://urob.github.io/numpy-mkl
+
+          # On free-threaded builds, fail if any extension module re-enables the GIL.
+          if [[ "${{ matrix.python_version }}" == *t ]]; then
+            case "${{ inputs.name }}" in
+              mkl-service) pkgs="mkl" ;;
+              *) pkgs="${{ inputs.name }} mkl" ;;
+            esac
+            python tools/check_gil ${pkgs}
+          fi
 
           case "${{ inputs.name }}" in
             numpy)

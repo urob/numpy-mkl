@@ -123,11 +123,15 @@ class FetchPackageData:
         return self.package_data['tag']
 
     def fetch_python_versions(self):
-        # TODO: Handle free-threading tags
-        python_versions = self.config.python_versions
-        requires_python = self.package_data['requires_python']
-        supported_versions = SpecifierSet(requires_python).filter(python_versions)
-        return ['cp' + v.replace('.', '') for v in supported_versions]
+        # A trailing 't' marks a free-threaded build. It is an ABI flag rather than part of the
+        # version, so requires-python is checked against the bare version.
+        requires_python = SpecifierSet(self.package_data['requires_python'])
+        tags = []
+        for python_version in self.config.python_versions:
+            base = python_version.removesuffix('t')
+            if requires_python.contains(Version(f'{base}.99')):
+                tags.append('cp' + python_version.replace('.', ''))
+        return tags
 
 
 class FetchBuildMatrix:

@@ -58,7 +58,23 @@ def index_url(index):
     return path.as_uri() if (path := Path(index)).is_dir() else index
 
 
+def is_free_threaded(python):
+    """Free-threaded versions carry a 't' suffix, as in '3.15t'."""
+    return python.endswith('t')
+
+
+def version_key(python):
+    """Sort key placing each free-threaded version right after its default build."""
+    major, minor = python.removesuffix('t').split('.')
+    return int(major), int(minor), is_free_threaded(python)
+
+
 def compile_args(python, requirements, index):
+    # uv takes the ABI (default or free-threaded) from the interpreter it resolves with,
+    # even under `--python-version`, and a bare '3.15' request may well pick an installed
+    # 3.15t. So always pin the build ('3.15+gil' or '3.15t'; uv fetches it if missing),
+    # and keep `--python-version` so that the installed patch release doesn't matter.
+    interpreter = python if is_free_threaded(python) else python + '+gil'
     return [
         'uv',
         'pip',
@@ -66,8 +82,10 @@ def compile_args(python, requirements, index):
         str(requirements),
         '--index-url',
         index,
+        '--python',
+        interpreter,
         '--python-version',
-        python,
+        python.removesuffix('t'),
         '--python-platform',
         PLATFORM,
         '--no-header',
@@ -149,8 +167,10 @@ class Wheels:
         '# Do not edit, generated automatically by <tools/update-nix-wheels>.\n'
         '#\n'
         '# One internally consistent resolution per python version, produced by\n'
-        '# `uv pip compile --index-url {index} --python-version <key>\n'
-        '#  --python-platform {platform}`.\n'
+        '# `uv pip compile --index-url {index} --python <interpreter>\n'
+        '#  --python-version <version> --python-platform {platform}`, where keys like\n'
+        '# "3.15" resolve with the default build (3.15+gil) and keys like "3.15t" with\n'
+        '# the free-threaded one, which nix/lib.nix selects for pythonXYZFreeThreading.\n'
     )
 
     def __init__(self, resolutions):
@@ -158,7 +178,7 @@ class Wheels:
 
     @property
     def pythons(self):
-        return sorted(self.resolutions, key=lambda _: [int(p) for p in _.split('.')])
+        return sorted(self.resolutions, key=version_key)
 
     def dependencies(self):
         """Return the dependency graph, which must not vary across pythons."""
@@ -274,14 +294,6 @@ if __name__ == '__main__':
     with TemporaryDirectory() as tmp:
         resolutions = {}
         for python in config['defaults']['python_versions']:
-            # Free-threaded builds (e.g. '3.15t') aren't supported by the nix pipeline yet:
-            # `uv pip compile --python-version` can't target them, and the flake has no
-            # attribute mapping for them (nixpkgs calls them pythonXYFreeThreading).
-            if python.endswith('t'):
-                print(
-                    f'Skipping python {python}: free-threaded builds are not supported'
-                )
-                continue
             if resolved := Resolution(python, Path(tmp), index).resolve():
                 resolutions[python] = resolved
             else:
@@ -292,7 +304,14 @@ if __name__ == '__main__':
 
     wheels = Wheels(resolutions)
     dependencies = wheels.dependencies()
-    latest = wheels.pythons[-1]
+    # The template flake tracks the newest default (GIL-enabled) build, as the free-threaded
+    # interpreters live under a different attribute (pythonXYZFreeThreading).
+    defaults = [_ for _ in wheels.pythons if not is_free_threaded(_)]
+    if not defaults:
+        raise ResolutionError(
+            'No default (GIL-enabled) python resolves against the index'
+        )
+    latest = defaults[-1]
 
     (nixdir / 'wheels.nix').write_text(wheels.render())
 

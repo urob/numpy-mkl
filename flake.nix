@@ -14,16 +14,16 @@
         overlays = [ self.overlays.default ];
       };
       inherit (pkgs) lib;
-      inherit (import ./nix/lib.nix { inherit lib; }) supportedPythons;
+      inherit (import ./nix/lib.nix { inherit lib; }) supportedPythons isFreeThreaded attrFor;
 
-      # Newest python that both has wheels and is provided by nixpkgs. Removed
-      # interpreters linger as throwing aliases, so probe the attribute rather
-      # than trust its name.
-      attrFor = version: "python" + lib.replaceStrings [ "." ] [ "" ] version;
+      # Newest default (GIL-enabled) python that both has wheels and is provided by
+      # nixpkgs. Removed interpreters linger as throwing aliases, so probe the
+      # attribute rather than trust its name.
       provided =
         version:
         pkgs ? ${attrFor version} && (builtins.tryEval pkgs.${attrFor version}.pythonVersion).success;
-      python = pkgs.${attrFor (lib.last (builtins.filter provided supportedPythons))};
+      newest = builtins.filter (v: !isFreeThreaded v && provided v) supportedPythons;
+      python = pkgs.${attrFor (lib.last newest)};
     in
     {
       overlays.default = import ./nix/overlay.nix;

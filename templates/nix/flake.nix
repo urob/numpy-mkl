@@ -13,7 +13,8 @@
       overlays = [ mkl-overlay.overlays.default ];
       pkgs = import nixpkgs { inherit system overlays; };
 
-      # Select python version here, or set to python3 for default.
+      # Select python version here, or set to python3 for default. For a free-threaded
+      # interpreter, use pythonXXXFreeThreading instead (e.g. python315FreeThreading).
       python = with pkgs; python315;
     in
     {

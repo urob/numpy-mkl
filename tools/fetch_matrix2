@@ -20,6 +20,10 @@ REQUESTS_TIMEOUT = 45
 # '+', but a tag carrying either already fails the round-trip check in parse_release_tag.
 TAG_RE = re.compile(r'\A[A-Za-z0-9._-]+\Z')
 
+# Python versions end up in the build matrix and from there in job names and shell scripts,
+# and can be set from a free-form workflow input, so only accept e.g. '3.15' or '3.15t'.
+PYTHON_VERSION_RE = re.compile(r'\A3\.[0-9]{1,2}t?\Z')
+
 RELEASES = 'https://api.github.com/repos/{repo}/releases'
 PYPROJECT = 'https://raw.githubusercontent.com/{repo}/refs/tags/{tag}/pyproject.toml'
 REPO = {
@@ -128,6 +132,10 @@ class FetchPackageData:
         requires_python = SpecifierSet(self.package_data['requires_python'])
         tags = []
         for python_version in self.config.python_versions:
+            if not PYTHON_VERSION_RE.match(python_version):
+                raise FetchPackageDataError(
+                    f'Invalid python version {python_version!r}'
+                )
             base = python_version.removesuffix('t')
             if requires_python.contains(Version(f'{base}.99')):
                 tags.append('cp' + python_version.replace('.', ''))
@@ -140,6 +148,7 @@ class FetchBuildMatrix:
         self.package_version = package_data.fetch_package_version()
         self.python_versions = package_data.fetch_python_versions()
         self.git_tag = package_data.fetch_git_tag()
+        self.repo = package_data.repo
         self.config = config
         self.store = store
 
@@ -178,7 +187,12 @@ class FetchBuildMatrix:
 
     def print(self):
         matrix = self.fetch_matrix()
-        out = {'version': self.package_version, 'tag': self.git_tag, 'matrix': matrix}
+        out = {
+            'version': self.package_version,
+            'tag': self.git_tag,
+            'repo': self.repo,
+            'matrix': matrix,
+        }
         print(json.dumps(out))
 
 

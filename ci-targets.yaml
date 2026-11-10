@@ -4,7 +4,6 @@ defaults:
     - "3.13"
     - "3.14"
     - "3.15"
-    - "3.15t"
 
   runners:
     - ["windows-2022", null]
@@ -16,3 +15,8 @@ defaults:
 # Overwrites by package. E.g.,
 # numpy:
 #   python_versions: ["3.13", "3.14"]
+
+# Free-threaded builds are rolled out one package at a time, since each package's cp315t
+# wheels depend on those of the previous one being released (mkl-service -> numpy -> scipy).
+mkl-service:
+  python_versions: ["3.12", "3.13", "3.14", "3.15", "3.15t"]

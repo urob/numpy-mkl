@@ -124,6 +124,14 @@ jobs:
           version-file: "pyproject.toml"
           enable-cache: false
 
+      - name: Check python version
+        run: |
+          # Don't ship wheels built against a prerelease interpreter.
+          py="uv run --no-project python"
+          $py -VV
+          $py -c "import sys; sys.exit(sys.version_info.releaselevel != 'final')" ||
+              { echo "::error::$($py -V) is a prerelease"; exit 1; }
+
       - name: Install MKL libraries
         run: |
           # Prevent using future MKL versions, which may not be backward compatible.

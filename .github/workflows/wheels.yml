@@ -141,6 +141,8 @@ jobs:
         run: |
           # Need this since pyproject.toml doesn't apply to $SRC_DIR.
           echo "UV_PYTHON_PREFERENCE=only-managed" >>$GITHUB_ENV
+          # Mitigate intermittent 503 issues with the GitHub Pages index.
+          echo "UV_HTTP_RETRIES=10" >>$GITHUB_ENV
 
           case "${{ runner.os }}" in
             Linux) echo "venv_bin=bin" >>$GITHUB_ENV ;;

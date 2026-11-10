@@ -26,7 +26,16 @@ if __name__ == '__main__':
         case 'Linux':
             # test_support_moments_sample: MKL computes a Normal moment as exact
             # 0.0 vs ~3e-9, just exceeding the atol=2e-09 tolerance.
-            extra_args += ['-k', 'not test_support_moments_sample']
+            # test_decomp_cossin::test_properties: compares two cossin calls on
+            # the same input with rtol=1e-15; MKL isn't bitwise reproducible
+            # across calls (alignment-dependent code paths), giving ~1e-16 diffs
+            # on the m=20 cases (seen on cp315t). Scoped to the module since
+            # other scipy tests are also named test_properties.
+            extra_args += [
+                '-k',
+                'not test_support_moments_sample'
+                ' and not (test_decomp_cossin and test_properties)',
+            ]
 
     passed = scipy.test(extra_argv=extra_args or None)
     sys.exit(not passed)

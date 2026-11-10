@@ -1,4 +1,11 @@
 name: Wheels
+# Only used for manual dispatches; runs called from other workflows are named after the caller.
+run-name: Wheels ${{ inputs.name }}${{ inputs.dry-run && ' (dry run)' || '' }}
+
+# Builds, tests and releases one package, e.g.
+#   gh workflow run wheels.yml -f name=numpy                     # dry run, missing wheels only
+#   gh workflow run wheels.yml -f name=numpy -f dry-run=false    # build and release
+#   gh workflow run wheels.yml -f name=scipy -f python-versions="3.15 3.15t" -f force-build=true
 
 on:
   workflow_call:
@@ -6,23 +13,52 @@ on:
       name:
         required: true
         type: string
-        description: "Package to build (numpy, scipy, mkl-service)"
-      repo:
-        required: true
-        type: string
-        description: "Source repo (numpy/numpy, scipy/scipy, IntelPython/mkl-service)"
+        description: "Package to build (mkl-service, numpy, scipy)"
       force-build:
         required: false
         type: boolean
-        description: "Force build even if wheels exist"
+        default: false
+        description: "Rebuild wheels even if they are already in build.json"
       version:
         required: false
         type: string
-        description: "Version to build (default: latest release)"
+        default: latest
+        description: "Package version to build (default: latest release)"
+      python-versions:
+        required: false
+        type: string
+        default: ""
+        description: "Python versions to build, e.g. '3.15 3.15t' (default: from ci-targets.yaml)"
       dry-run:
         required: false
         type: boolean
         default: false
+        description: "Build and test only, skipping the release (wheels are kept as artifacts)"
+
+  workflow_dispatch:
+    inputs:
+      name:
+        required: true
+        type: choice
+        options: [mkl-service, numpy, scipy]
+        description: "Package to build (mkl-service, numpy, scipy)"
+      force-build:
+        type: boolean
+        default: false
+        description: "Rebuild wheels even if they are already in build.json"
+      version:
+        type: string
+        default: latest
+        description: "Package version to build (default: latest release)"
+      python-versions:
+        type: string
+        default: ""
+        description: "Python versions to build, e.g. '3.15 3.15t' (default: from ci-targets.yaml)"
+      dry-run:
+        type: boolean
+        # Unlike when called from another workflow, default to not releasing anything, so that
+        # a manual run only publishes when asked to explicitly.
+        default: true
         description: "Build and test only, skipping the release (wheels are kept as artifacts)"
 
 jobs:
@@ -34,6 +70,7 @@ jobs:
     outputs:
       tag: ${{ env.tag }}
       version: ${{ env.version }}
+      repo: ${{ env.repo }}
       matrix: ${{ env.matrix }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -49,13 +86,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ inputs.version }}
+          PYTHON_VERSIONS: ${{ inputs.python-versions }}
         run: |
+          # Space- or comma-separated; each one is validated by fetch_matrix2.
+          py_args=()
+          for v in ${PYTHON_VERSIONS//,/ }; do py_args+=(--python_versions "$v"); done
+
           uv run --locked tools/fetch_matrix2 ${{ inputs.name }} --config ci-targets.yaml \
-            --store build.json ${VERSION:+--version "$VERSION"} \
+            --store build.json ${VERSION:+--version "$VERSION"} "${py_args[@]}" \
             ${{ inputs.force-build && '--force-build' || '' }} >matrix.json
 
           echo "tag=$(jq -rc '."tag"' matrix.json)" >>$GITHUB_ENV
           echo "version=$(jq -rc '."version"' matrix.json)" >>$GITHUB_ENV
+          echo "repo=$(jq -rc '."repo"' matrix.json)" >>$GITHUB_ENV
           echo "matrix=$(jq -c '."matrix"' matrix.json)" >>$GITHUB_ENV
 
           cat matrix.json | yq -P -o yaml
@@ -88,7 +131,7 @@ jobs:
       - name: Check out src
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: ${{ inputs.repo }}
+          repository: ${{ needs.meta.outputs.repo }}
           ref: ${{ needs.meta.outputs.tag }}
           path: src
           submodules: recursive
@@ -397,6 +440,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    concurrency:
+      group: release
+      cancel-in-progress: false
 
     steps:
       - name: Checkout main branch

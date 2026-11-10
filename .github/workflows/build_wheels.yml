@@ -21,7 +21,6 @@ jobs:
       contents: write
     with:
       name: mkl-service
-      repo: IntelPython/mkl-service
     needs: links
 
   numpy:
@@ -30,7 +29,6 @@ jobs:
       contents: write
     with:
       name: numpy
-      repo: numpy/numpy
     needs: [links, mkl-service]
 
   scipy:
@@ -39,5 +37,4 @@ jobs:
       contents: write
     with:
       name: scipy
-      repo: scipy/scipy
     needs: [links, mkl-service, numpy]

@@ -1,7 +1,20 @@
 name: Rebuild all
 
+# Rebuilds the latest release of every package, in dependency order. To rebuild only some Python
+# versions (e.g., after a new CPython release), set python-versions, e.g.:
+#   gh workflow run force_all.yml -f python-versions="3.15 3.15t"
+# For a single package, dispatch wheels.yml directly instead.
 on:
   workflow_dispatch:
+    inputs:
+      python-versions:
+        type: string
+        default: ""
+        description: "Python versions to rebuild, e.g. '3.15 3.15t' (default: from ci-targets.yaml)"
+      dry-run:
+        type: boolean
+        default: false
+        description: "Build and test only, skipping the release (wheels are kept as artifacts)"
 
 permissions: {}
 
@@ -12,8 +25,9 @@ jobs:
       contents: write
     with:
       name: mkl-service
-      repo: IntelPython/mkl-service
       force-build: true
+      python-versions: ${{ inputs.python-versions }}
+      dry-run: ${{ inputs.dry-run }}
 
   numpy:
     uses: ./.github/workflows/wheels.yml
@@ -21,8 +35,9 @@ jobs:
       contents: write
     with:
       name: numpy
-      repo: numpy/numpy
       force-build: true
+      python-versions: ${{ inputs.python-versions }}
+      dry-run: ${{ inputs.dry-run }}
     needs: mkl-service
 
   scipy:
@@ -31,6 +46,7 @@ jobs:
       contents: write
     with:
       name: scipy
-      repo: scipy/scipy
       force-build: true
+      python-versions: ${{ inputs.python-versions }}
+      dry-run: ${{ inputs.dry-run }}
     needs: [mkl-service, numpy]

@@ -89,11 +89,18 @@ class Wheels:
         self.url = 'https://api.github.com/repos/urob/numpy-mkl/releases'
 
     def fetch_releases(self, token=None):
+        # The API is paginated (30 per page by default); without following the 'next' links,
+        # wheels that only exist in older releases silently drop out of the index.
         headers = self.headers(token=token)
-        response = requests.get(self.url, timeout=REQUESTS_TIMEOUT, headers=headers)
-        if (rc := response.status_code) != 200:  # noqa: PLR2004
-            raise FetchReleaseDataError(f'Download failed with status code {rc}')
-        return response.json()
+        releases = []
+        url = f'{self.url}?per_page=100'
+        while url:
+            response = requests.get(url, timeout=REQUESTS_TIMEOUT, headers=headers)
+            if (rc := response.status_code) != 200:  # noqa: PLR2004
+                raise FetchReleaseDataError(f'Download failed with status code {rc}')
+            releases.extend(response.json())
+            url = response.links.get('next', {}).get('url')
+        return releases
 
     @staticmethod
     def headers(token=None):

@@ -6,9 +6,7 @@ on:
     workflows:
       - Build wheels
       - Rebuild all
-      - Rebuild mkl-service
-      - Rebuild numpy
-      - Rebuild scipy
+      - Wheels # Manual dispatches only; calls from the workflows above don't trigger this.
     types: [completed]
 
 permissions:
@@ -16,7 +14,12 @@ permissions:
 
 jobs:
   nix:
-    if: github.repository == 'urob/numpy-mkl'
+    # Skip manual dry runs of wheels.yml, which release nothing (their run-name ends in
+    # '(dry run)'). Dry runs of force_all.yml can't be told apart and just find nothing to do.
+    if: >-
+      github.repository == 'urob/numpy-mkl' &&
+      !(github.event_name == 'workflow_run' &&
+        endsWith(github.event.workflow_run.display_title, '(dry run)'))
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -161,4 +164,9 @@ jobs:
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add .
           git commit -m "ci: Update nix derivations"
+
+          # Main is checked out minutes before this push, so a release or merge may have landed
+          # in the meantime. Releases don't touch the files committed here, so rebase on top;
+          # in the rare case of a real conflict, this fails and the next run retries.
+          git pull --rebase origin main
           git push origin HEAD:main

@@ -19,6 +19,11 @@ on:
         required: false
         type: string
         description: "Version to build (default: latest release)"
+      dry-run:
+        required: false
+        type: boolean
+        default: false
+        description: "Build and test only, skipping the release (wheels are kept as artifacts)"
 
 jobs:
   meta:
@@ -43,9 +48,10 @@ jobs:
       - name: Fetch build matrix
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ inputs.version }}
         run: |
           uv run --locked tools/fetch_matrix2 ${{ inputs.name }} --config ci-targets.yaml \
-            --store build.json \
+            --store build.json ${VERSION:+--version "$VERSION"} \
             ${{ inputs.force-build && '--force-build' || '' }} >matrix.json
 
           echo "tag=$(jq -rc '."tag"' matrix.json)" >>$GITHUB_ENV
@@ -362,12 +368,13 @@ jobs:
           path: |
             wheelhouse/*.whl
             wheelhouse/*.json
-          retention-days: 1
+          # Keep dry-run wheels around long enough to download and inspect them.
+          retention-days: ${{ inputs.dry-run && 7 || 1 }}
 
   #-----------------------------------------------------------------------------------------------
   release:
     needs: [meta, build]
-    if: ${{ needs.meta.outputs.matrix != 'null' }}
+    if: ${{ needs.meta.outputs.matrix != 'null' && !inputs.dry-run }}
     runs-on: ubuntu-latest
     permissions:
       contents: write

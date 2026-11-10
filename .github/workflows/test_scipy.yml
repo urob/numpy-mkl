@@ -1,0 +1,33 @@
+name: Test-build scipy
+
+# Builds and tests wheels without releasing them. Dispatch against a feature branch to try out
+# changes to the build before merging, e.g.:
+#   gh workflow run test_scipy.yml --ref <branch>
+
+on:
+  workflow_dispatch:
+    inputs:
+      force-build:
+        type: boolean
+        default: false
+        description: "Rebuild all wheels, not just those missing from build.json"
+      version:
+        type: string
+        default: latest
+        description: "Version to build (default: latest release)"
+
+permissions: {}
+
+jobs:
+  scipy:
+    uses: ./.github/workflows/wheels.yml
+    # Nothing is written in a dry run, but the (skipped) release job declares 'contents: write',
+    # and GitHub refuses to start a reusable workflow whose jobs ask for more than the caller grants.
+    permissions:
+      contents: write
+    with:
+      name: scipy
+      repo: scipy/scipy
+      force-build: ${{ inputs.force-build }}
+      version: ${{ inputs.version }}
+      dry-run: true

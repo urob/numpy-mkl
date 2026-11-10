@@ -69,11 +69,25 @@ def version_key(python):
     return int(major), int(minor), is_free_threaded(python)
 
 
+def install_interpreter(python):
+    """Install the interpreter `compile_args` resolves with, unless already present.
+
+    uv downloads a missing interpreter for requests like '3.15' or '3.15t', but not for
+    '3.15+gil', which only matches existing installations. A plain '3.15' install fetches
+    the default build. `--no-bin` keeps local runs from linking it into ~/.local/bin.
+    """
+    args = ['uv', 'python', 'install', '--no-bin', python]
+    result = subprocess.run(args, capture_output=True, text=True, check=False)
+    if result.returncode != 0:
+        raise ResolutionError(result.stderr.strip())
+
+
 def compile_args(python, requirements, index):
     # uv takes the ABI (default or free-threaded) from the interpreter it resolves with,
     # even under `--python-version`, and a bare '3.15' request may well pick an installed
-    # 3.15t. So always pin the build ('3.15+gil' or '3.15t'; uv fetches it if missing),
-    # and keep `--python-version` so that the installed patch release doesn't matter.
+    # 3.15t. So always pin the build ('3.15+gil' or '3.15t', installed beforehand by
+    # `install_interpreter`), and keep `--python-version` so that the installed patch
+    # release doesn't matter.
     interpreter = python if is_free_threaded(python) else python + '+gil'
     return [
         'uv',
@@ -104,6 +118,7 @@ class Resolution:
 
     def resolve(self):
         """Return (wheels, dependencies), or None if nothing satisfies python."""
+        install_interpreter(self.python)
         wheels = self.fetch_wheels()
         if wheels is None:
             return None

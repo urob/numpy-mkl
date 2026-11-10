@@ -177,6 +177,14 @@ jobs:
           $py -c "import sys; sys.exit(sys.version_info.releaselevel != 'final')" ||
               { echo "::error::$($py -V) is a prerelease"; exit 1; }
 
+          # A request like 'cp315' also matches a free-threaded 3.15 if that's the one
+          # installed. Each job only installs its own interpreter, but fail loudly rather
+          # than silently build the wrong ABI should that ever change.
+          $py -c "import sys, sysconfig; sys.exit(
+              bool(sysconfig.get_config_var('Py_GIL_DISABLED'))
+              != '${{ matrix.python_version }}'.endswith('t'))" ||
+              { echo "::error::$($py -V) doesn't match ${{ matrix.python_version }}"; exit 1; }
+
       - name: Install MKL libraries
         run: |
           # Prevent using future MKL versions, which may not be backward compatible.

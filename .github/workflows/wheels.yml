@@ -326,6 +326,15 @@ jobs:
           uv venv testenv && source testenv/"${{ env.venv_bin }}"/activate
           uv pip install wheelhouse/*.whl --index https://urob.github.io/numpy-mkl
 
+          # On free-threaded builds, fail if any extension module re-enables the GIL.
+          if [[ "${{ matrix.python_version }}" == *t ]]; then
+            case "${{ inputs.name }}" in
+              mkl-service) pkgs="mkl" ;;
+              *) pkgs="${{ inputs.name }} mkl" ;;
+            esac
+            python tools/check_gil ${pkgs}
+          fi
+
           case "${{ inputs.name }}" in
             numpy)
               uv pip install -r "${{ env.SRC_DIR }}"/requirements/test_requirements.txt

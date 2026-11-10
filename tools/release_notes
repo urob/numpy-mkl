@@ -42,8 +42,20 @@ def sort_entries(dct):
 
 
 def parse_python_versions(v):
-    min_, max_ = min(v), max(v)
-    return f'≥{min_[2]}.{min_[3:5]}, ≤{max_[2]}.{max_[3:5]}'
+    # Free-threaded tags (e.g. cp315t) are listed separately, not folded into the range.
+    def fmt(tag):
+        return f'{tag[2]}.{tag[3:].removesuffix("t")}'
+
+    def key(tag):
+        return int(tag[3:].removesuffix('t'))
+
+    regular = sorted((t for t in v if not t.endswith('t')), key=key)
+    threaded = sorted((t for t in v if t.endswith('t')), key=key)
+    out = f'≥{fmt(regular[0])}, ≤{fmt(regular[-1])}' if regular else ''
+    if threaded:
+        ft = ', '.join(fmt(t) + 't' for t in threaded)
+        out = f'{out} (free-threaded: {ft})' if out else f'free-threaded: {ft}'
+    return out
 
 
 if __name__ == '__main__':

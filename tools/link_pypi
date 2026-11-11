@@ -91,6 +91,11 @@ def mirror(name: str, basedir: Path) -> None:
     """Copy PyPI's simple page for a package. Only replace the page on success."""
     with urllib.request.urlopen(f'{PYPI_URL}/{name}/', timeout=TIMEOUT) as r:
         page = r.read().decode()
+        # Log the page's PyPI serial and the CDN path, to spot stale cached pages.
+        print(
+            f'{name}: serial {r.headers.get("X-PyPI-Last-Serial")}, '
+            f'served by {r.headers.get("X-Served-By")} ({r.headers.get("X-Cache")})'
+        )
     if PYPI_FILES not in page:
         sys.exit(f'error: unexpected response from {PYPI_URL}/{name}/')
     (basedir / name).mkdir(exist_ok=True)

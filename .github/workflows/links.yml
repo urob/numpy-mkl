@@ -25,6 +25,11 @@ jobs:
           path: pypi
           persist-credentials: true  # Need credentials to push.
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version-file: "main/pyproject.toml"
+
       - name: Update external links
         run: |
           main/tools/link_pypi pypi/
@@ -50,7 +55,7 @@ jobs:
           # Pushing to 'pypi' only queues the Pages build. Wait until the new index is
           # actually served, so that a build chained after this workflow resolves against
           # it. Poll a file this commit changed, so the check can't pass on stale content.
-          file=$(git -C pypi show --name-only --format= HEAD | head -1)
+          file=$(git -C pypi show --name-only --format= HEAD | grep -m1 '/index.html$')
           url="https://urob.github.io/numpy-mkl/${file%/index.html}/"
           for _ in $(seq 60); do
             if served=$(curl -sSf -H 'Cache-Control: no-cache' "$url") \

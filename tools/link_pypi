@@ -1,20 +1,130 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python
+"""Mirror the PyPI simple pages of all runtime dependencies of the hosted packages.
 
-basedir="${1:-$(pwd)}"
+This lets `pip install --index-url <this index>` work without PyPI as a second index.
 
-packages=(
-    "intel-cmplr-lib-ur"
-    "intel-openmp"
-    "mkl"
-    "onemkl-license"
-    "tbb"
-    "tcmlib"
-    "umf"
-)
+Hosted packages are the index subdirectories whose page does not link to PyPI's file
+host. Their dependency tree is resolved with uv across all platforms and Python
+versions, with hosted packages pinned to this index and everything else taken from
+PyPI. Every package resolved to PyPI, plus every existing passthrough, is (re-)mirrored.
+Passthroughs are never dropped, since older wheels may still depend on them (e.g.
+onemkl-license is no longer required by mkl>=2026 but is by earlier releases).
 
-for p in "${packages[@]}"; do
-    url="https://pypi.org/simple/${p}/"
-    dir="${basedir}/${p}"
-    mkdir -p "${dir}"
-    curl "${url}" --output "${dir}/index.html"
-done
+Usage: link_pypi [INDEX_DIR]
+
+Only uses the standard library, so it runs with any Python >= 3.11 and uv on PATH.
+"""
+
+import subprocess
+import sys
+import tempfile
+import tomllib
+import urllib.request
+from pathlib import Path
+
+INDEX_URL = 'https://urob.github.io/numpy-mkl'
+PYPI_URL = 'https://pypi.org/simple'
+PYPI_FILES = 'https://files.pythonhosted.org/'
+REQUIRES_PYTHON = '>=3.11'
+TIMEOUT = 45
+
+ROOT_TEMPLATE = """<!DOCTYPE html>
+<html>
+  <head>
+    <title>Simple index</title>
+  </head>
+  <body>
+<p>Packages marked with (*) are custom compiled. The rest are unmodified dependencies and redirect to PyPI.</p>
+{links}
+  </body>
+</html>
+"""
+
+
+def scan_index(basedir: Path) -> tuple[set[str], set[str]]:
+    """Split the index subdirectories into hosted packages and PyPI passthroughs."""
+    hosted, passthrough = set(), set()
+    for page in basedir.glob('*/index.html'):
+        name = page.parent.name
+        (passthrough if PYPI_FILES in page.read_text() else hosted).add(name)
+    return hosted, passthrough
+
+
+def resolve_from_pypi(hosted: set[str]) -> set[str]:
+    """Return all packages that the hosted packages' dependency tree pulls from PyPI."""
+    deps = ', '.join(f'"{n}"' for n in sorted(hosted))
+    sources = '\n'.join(f'{n} = {{ index = "self" }}' for n in sorted(hosted))
+    pyproject = f"""\
+[project]
+name = "resolve"
+version = "0"
+requires-python = "{REQUIRES_PYTHON}"
+dependencies = [{deps}]
+
+[tool.uv.sources]
+{sources}
+
+[[tool.uv.index]]
+name = "self"
+url = "{INDEX_URL}"
+explicit = true
+"""
+    with tempfile.TemporaryDirectory() as tmp:
+        Path(tmp, 'pyproject.toml').write_text(pyproject)
+        lock = subprocess.run(
+            ['uv', 'pip', 'compile', 'pyproject.toml', '--no-config', '--universal',
+             '--format', 'pylock.toml', '--no-header', '--quiet'],
+            cwd=tmp, check=True, capture_output=True, text=True,
+        ).stdout
+
+    from_pypi = set()
+    for pkg in tomllib.loads(lock)['packages']:
+        urls = [w['url'] for w in pkg.get('wheels', [])]
+        if 'sdist' in pkg:
+            urls.append(pkg['sdist']['url'])
+        if urls and all(u.startswith(PYPI_FILES) for u in urls):
+            from_pypi.add(pkg['name'])
+    return from_pypi
+
+
+def mirror(name: str, basedir: Path) -> None:
+    """Copy PyPI's simple page for a package. Only replace the page on success."""
+    with urllib.request.urlopen(f'{PYPI_URL}/{name}/', timeout=TIMEOUT) as r:
+        page = r.read().decode()
+    if PYPI_FILES not in page:
+        sys.exit(f'error: unexpected response from {PYPI_URL}/{name}/')
+    (basedir / name).mkdir(exist_ok=True)
+    (basedir / name / 'index.html').write_text(page)
+
+
+def main() -> None:
+    basedir = Path(sys.argv[1] if len(sys.argv) > 1 else '.').resolve()
+
+    hosted, passthrough = scan_index(basedir)
+    if not hosted:
+        sys.exit(f'error: no hosted packages found in {basedir}')
+
+    try:
+        new = resolve_from_pypi(hosted) - passthrough
+    except subprocess.CalledProcessError as e:
+        # Don't block the refresh of existing links on a resolver failure, but make it
+        # loud.
+        print(e.stderr, file=sys.stderr)
+        print('::warning::Dependency resolution failed; only refreshing existing links')
+        new = set()
+    for name in sorted(new):
+        print(f'Adding new passthrough: {name}')
+    passthrough |= new
+
+    for name in sorted(passthrough):
+        mirror(name, basedir)
+
+    links = '\n'.join(
+        f'<a href="{n}/">{n}</a>{" (*)" if n in hosted else ""}<br/>'
+        for n in sorted(hosted | passthrough)
+    )
+    (basedir / 'index.html').write_text(ROOT_TEMPLATE.format(links=links))
+
+
+if __name__ == '__main__':
+    main()

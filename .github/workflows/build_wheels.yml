@@ -29,6 +29,7 @@ jobs:
       contents: write
     with:
       name: numpy
+      ilp64: false
     needs: [links, mkl-service]
 
   scipy:
@@ -37,4 +38,5 @@ jobs:
       contents: write
     with:
       name: scipy
+      ilp64: false
     needs: [links, mkl-service, numpy]

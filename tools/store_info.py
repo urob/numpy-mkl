@@ -21,6 +21,8 @@ class Build:
         self.python = self.info['python']
         self.os = self.info['os'].lower()
         self.mkl = self.info['mkl']
+        # Optional: absent in older build info and in fetch_matrix2's lookups, meaning LP64.
+        self.ilp64 = bool(self.info.get('ilp64', False))
 
         self.key = '-'.join([self.name, self.version, self.python, self.os])
 
@@ -29,7 +31,8 @@ class Build:
         return self.key in store and not bump_mkl
 
     def merge_with(self, store):
-        store[self.key] = {'mkl': self.mkl}
+        # Only record ILP64 builds, so that LP64 entries (the default) stay unchanged.
+        store[self.key] = {'mkl': self.mkl, **({'ilp64': True} if self.ilp64 else {})}
 
 
 def fetch_store(path):

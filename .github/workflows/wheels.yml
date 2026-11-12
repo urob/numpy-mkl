@@ -1,11 +1,14 @@
 name: Wheels
 # Only used for manual dispatches; runs called from other workflows are named after the caller.
-run-name: Wheels ${{ inputs.name }}${{ inputs.dry-run && ' (dry run)' || '' }}
+run-name: "Wheels ${{ inputs.name }}\
+  ${{ inputs.ilp64 && ' (ILP64)' || '' }}\
+  ${{ inputs.dry-run && ' (dry run)' || '' }}"
 
 # Builds, tests and releases one package, e.g.
 #   gh workflow run wheels.yml -f name=numpy                     # dry run, missing wheels only
 #   gh workflow run wheels.yml -f name=numpy -f dry-run=false    # build and release
 #   gh workflow run wheels.yml -f name=scipy -f python-versions="3.15 3.15t" -f force-build=true
+#   gh workflow run wheels.yml -f name=numpy -f ilp64=true -f force-build=true   # test ILP64
 
 on:
   workflow_call:
@@ -34,6 +37,11 @@ on:
         type: boolean
         default: false
         description: "Build and test only, skipping the release (wheels are kept as artifacts)"
+      ilp64:
+        required: false
+        type: boolean
+        default: false
+        description: "Use MKL's ILP64 (64-bit integer) interface (numpy, scipy)"
 
   workflow_dispatch:
     inputs:
@@ -60,6 +68,10 @@ on:
         # a manual run only publishes when asked to explicitly.
         default: true
         description: "Build and test only, skipping the release (wheels are kept as artifacts)"
+      ilp64:
+        type: boolean
+        default: false
+        description: "Use MKL's ILP64 (64-bit integer) interface (numpy, scipy)"
 
 jobs:
   meta:
@@ -305,16 +317,18 @@ jobs:
               # compiler supports at the cost of some binary size. Note MSVC gets none of them:
               # numpy disables X86_V4 and AVX512_ICL there (broken in Highway), so the Windows
               # wheels are AVX2-only regardless of what we ask for.
-              # ILP64: mkl-sdl.pc has no symbol_suffix variable, so the _64 suffix must be set
-              # explicitly. Without it numpy passes 64-bit ints to MKL's LP64 entry points and
-              # silently computes garbage.
               args="-Csetup-args=-Dblas=mkl-sdl \
                     -Csetup-args=-Dlapack=mkl-sdl \
-                    -Csetup-args=-Duse-ilp64=true \
-                    -Csetup-args=-Dblas-symbol-suffix=_64 \
                     -Csetup-args=-Dallow-noblas=false \
                     -Csetup-args=-Dcpu-baseline=X86_V3 \
                     -Csetup-args=-Dcpu-dispatch=max"
+              # ILP64 calls MKL's _64-suffixed entry points in mkl_rt, which are ILP64 regardless
+              # of MKL_INTERFACE_LAYER. mkl-sdl.pc has no symbol_suffix variable, so the suffix
+              # must be set explicitly: without it numpy passes 64-bit ints to the unsuffixed
+              # LP64 entry points and silently computes garbage.
+              if [[ "${{ inputs.ilp64 }}" == "true" ]]; then
+                args="${args} -Csetup-args=-Duse-ilp64=true -Csetup-args=-Dblas-symbol-suffix=_64"
+              fi
               [[ "${{ runner.os }}" == "Windows" ]] && args="${args} -Csetup-args=--vsenv"
               ;;
 
@@ -325,6 +339,12 @@ jobs:
               args="-Csetup-args=-Dblas=mkl-sdl \
                     -Csetup-args=-Dlapack=mkl-sdl \
                     -Csetup-args=-Duse-g77-abi=true"
+              # ILP64 internally, but keep the public cython_blas/cython_lapack API (and
+              # linalg.blas/linalg.lapack attributes) LP64 so that downstream packages compiled
+              # against it keep working. Scipy adds the _64 suffix for MKL itself.
+              if [[ "${{ inputs.ilp64 }}" == "true" ]]; then
+                args="${args} -Csetup-args=-Duse-ilp64=true -Csetup-args=-Dcython-blas-abi=lp64"
+              fi
               ;;
 
             'mkl-service')
@@ -434,7 +454,8 @@ jobs:
             "version": "${{ needs.meta.outputs.version }}",
             "python": "${{ matrix.python_version }}",
             "os": "${{ runner.os }}",
-            "mkl": "${{ env.MKL_VERSION }}"
+            "mkl": "${{ env.MKL_VERSION }}",
+            "ilp64": ${{ inputs.ilp64 }}
           }
           EOF
 

@@ -11,6 +11,7 @@ jobs:
   # Refresh the mirrored PyPI links before building, so that wheels are resolved and
   # tested against an index that carries the latest MKL runtime they pin.
   links:
+    if: github.repository == 'urob/numpy-mkl'
     uses: ./.github/workflows/links.yml
     permissions:
       contents: write

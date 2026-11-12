@@ -75,7 +75,6 @@ on:
 
 jobs:
   meta:
-    if: github.repository == 'urob/numpy-mkl'
     runs-on: ubuntu-latest
     permissions:
       contents: read

@@ -305,8 +305,13 @@ jobs:
               # compiler supports at the cost of some binary size. Note MSVC gets none of them:
               # numpy disables X86_V4 and AVX512_ICL there (broken in Highway), so the Windows
               # wheels are AVX2-only regardless of what we ask for.
+              # ILP64: mkl-sdl.pc has no symbol_suffix variable, so the _64 suffix must be set
+              # explicitly. Without it numpy passes 64-bit ints to MKL's LP64 entry points and
+              # silently computes garbage.
               args="-Csetup-args=-Dblas=mkl-sdl \
                     -Csetup-args=-Dlapack=mkl-sdl \
+                    -Csetup-args=-Duse-ilp64=true \
+                    -Csetup-args=-Dblas-symbol-suffix=_64 \
                     -Csetup-args=-Dallow-noblas=false \
                     -Csetup-args=-Dcpu-baseline=X86_V3 \
                     -Csetup-args=-Dcpu-dispatch=max"

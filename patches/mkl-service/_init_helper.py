@@ -13,9 +13,7 @@ import ctypes
 import os
 from importlib.metadata import PackageNotFoundError, files
 
-with contextlib.suppress(
-    AttributeError, FileNotFoundError, PackageNotFoundError, StopIteration, TypeError
-):
+with contextlib.suppress(OSError, PackageNotFoundError, StopIteration, TypeError):
     if os.name == 'nt':
         # Add the MKL library path to the DLL search path.
         dll = next(p for p in files('mkl') if p.match('*mkl_rt*.dll'))

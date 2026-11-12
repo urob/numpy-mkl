@@ -2,18 +2,28 @@ diff --git a/numpy/_distributor_init.py b/numpy/_distributor_init.py
 index 25b0eed7..76152e93 100644
 --- a/numpy/_distributor_init.py
 +++ b/numpy/_distributor_init.py
-@@ -13,3 +13,14 @@
+@@ -13,3 +13,24 @@
      from . import _distributor_init_local  # noqa: F401
  except ImportError:
      pass
 +
 +try:
 +    import mkl
-+except ImportError:
++except ImportError as e:
++    if not (isinstance(e, ModuleNotFoundError) and e.name == "mkl"):
++        # mkl-service is installed but failed to load the MKL runtime. NumPy searches a
++        # subset of the same library paths, so it would fail too, just less clearly.
++        raise ImportError(
++            "mkl-service failed to load the MKL runtime library. Please make sure that "
++            "the 'mkl' package is installed alongside mkl-service."
++        ) from e
++
++    # Without mkl-service, NumPy can still find MKL if it is on the library search path
++    # (e.g., LD_LIBRARY_PATH on Linux), just without mkl-service's runtime setup.
 +    import warnings
 +
 +    warnings.warn(
-+        "Failed to import mkl-service. Please install it or manually add the MKL "
-+        "library to LD_LIBRARY_PATH.",
++        "mkl-service is not installed. Please install it, or make the MKL runtime "
++        "library available on the library search path (e.g., LD_LIBRARY_PATH).",
 +        stacklevel=2,
 +    )

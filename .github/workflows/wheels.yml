@@ -85,6 +85,14 @@ jobs:
       repo: ${{ env.repo }}
       matrix: ${{ env.matrix }}
     steps:
+      - name: Check release branch
+        if: ${{ !inputs.dry-run && github.ref != 'refs/heads/main' }}
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          echo "::error::Releases are only published from main, not ${REF}. Use dry-run=true."
+          exit 1
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false

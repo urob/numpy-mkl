@@ -80,6 +80,22 @@ url = "https://urob.github.io/numpy-mkl"
 explicit = true
 ```
 
+## ILP64 (64-bit integer) support
+
+Starting with the next NumPy release (2.6.0), this project will switch to compiling NumPy wheels
+with 64-bit integer support. SciPy wheels will follow later (probably starting with SciPy 2.1.0).
+In the meantime, ILP64 builds of current NumPy and SciPy versions can be obtained by running the
+following workflows in a fork:
+
+```sh
+gh workflow run wheels.yml -R <user>/numpy-mkl -f name=numpy -f force-build=true -f ilp64=true
+gh workflow run wheels.yml -R <user>/numpy-mkl -f name=scipy -f force-build=true -f ilp64=true
+gh run download -R <user>/numpy-mkl
+```
+
+The last command let's you select the wheels to download. Alternatively, the wheels can also be
+downloaded from the "Actions" tab on GitHub.
+
 ## Alternatives
 
 The usual way to obtain MKL-accelerated NumPy and SciPy packages is through

@@ -423,6 +423,13 @@ jobs:
             python tools/check_gil ${pkgs}
           fi
 
+          # Fail if the wheel's BLAS/LAPACK integer size doesn't match the requested one.
+          case "${{ inputs.name }}" in
+            numpy|scipy)
+              python tools/check_ilp64 "${{ inputs.name }}" --expect "${{ inputs.ilp64 }}"
+              ;;
+          esac
+
           case "${{ inputs.name }}" in
             numpy)
               uv pip install -r "${{ env.SRC_DIR }}"/requirements/test_requirements.txt

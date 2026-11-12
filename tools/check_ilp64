@@ -1,0 +1,52 @@
+#!/usr/bin/env python
+"""Assert that a wheel was built against the requested BLAS/LAPACK integer interface.
+
+Note that this does not detect an ILP64 numpy build that is missing the '_64' symbol suffix: it
+reports ILP64 correctly but calls MKL's LP64 entry points. The numpy test suite catches that.
+
+Usage:
+    tools/check_ilp64 numpy --expect true
+"""
+
+import argparse
+import sys
+
+
+def check_numpy(expect):
+    from numpy.testing import HAS_LAPACK64  # noqa: PLC0415
+
+    if HAS_LAPACK64 is not expect:
+        sys.exit(f'error: numpy ILP64={HAS_LAPACK64}, expected {expect}')
+    print(f'numpy ILP64={HAS_LAPACK64}')
+
+
+def check_scipy(expect):
+    from scipy.linalg import blas  # noqa: PLC0415
+
+    if blas.HAS_ILP64 is not expect:
+        sys.exit(f'error: scipy ILP64={blas.HAS_ILP64}, expected {expect}')
+
+    # The public cython_blas/cython_lapack API and the module-level linalg.blas/linalg.lapack
+    # wrappers must stay LP64, so that downstream packages compiled against them keep working.
+    lp64 = blas.get_blas_funcs('gemm', ilp64=False).int_dtype
+    if lp64.name != 'int32':
+        sys.exit(f'error: scipy LP64 BLAS uses {lp64}, expected int32')
+    if expect:
+        ilp64 = blas.get_blas_funcs('gemm', ilp64=True).int_dtype
+        if ilp64.name != 'int64':
+            sys.exit(f'error: scipy ILP64 BLAS uses {ilp64}, expected int64')
+    print(f'scipy ILP64={blas.HAS_ILP64}, LP64 API intact')
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument('package', choices=['numpy', 'scipy'], help='package to check')
+    parser.add_argument(
+        '--expect',
+        required=True,
+        choices=['true', 'false'],
+        help='whether ILP64 is expected',
+    )
+    args = parser.parse_args()
+
+    {'numpy': check_numpy, 'scipy': check_scipy}[args.package](args.expect == 'true')

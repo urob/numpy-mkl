@@ -1,29 +1,41 @@
 diff --git a/numpy/_distributor_init.py b/numpy/_distributor_init.py
-index 25b0eed7..76152e93 100644
+index f608036..686de32 100644
 --- a/numpy/_distributor_init.py
 +++ b/numpy/_distributor_init.py
-@@ -13,3 +13,24 @@
+@@ -13,3 +13,36 @@ try:
      from . import _distributor_init_local  # noqa: F401
  except ImportError:
      pass
 +
++
++def _in_subinterpreter():
++    try:
++        from concurrent import interpreters
++    except ImportError:  # Python < 3.14
++        return False
++    return interpreters.get_current().id != interpreters.get_main().id
++
++
 +try:
 +    import mkl
 +except ImportError as e:
-+    if not (isinstance(e, ModuleNotFoundError) and e.name == "mkl"):
++    if isinstance(e, ModuleNotFoundError) and e.name == "mkl":
++        # Without mkl-service, NumPy can still find MKL if it is on the library search
++        # path (e.g., LD_LIBRARY_PATH on Linux), just without mkl-service's runtime setup.
++        import warnings
++
++        warnings.warn(
++            "mkl-service is not installed. Please install it, or make the MKL runtime "
++            "library available on the library search path (e.g., LD_LIBRARY_PATH).",
++            stacklevel=2,
++        )
++    elif not _in_subinterpreter():
 +        # mkl-service is installed but failed to load the MKL runtime. NumPy searches a
 +        # subset of the same library paths, so it would fail too, just less clearly.
 +        raise ImportError(
 +            "mkl-service failed to load the MKL runtime library. Please make sure that "
 +            "the 'mkl' package is installed alongside mkl-service."
 +        ) from e
-+
-+    # Without mkl-service, NumPy can still find MKL if it is on the library search path
-+    # (e.g., LD_LIBRARY_PATH on Linux), just without mkl-service's runtime setup.
-+    import warnings
-+
-+    warnings.warn(
-+        "mkl-service is not installed. Please install it, or make the MKL runtime "
-+        "library available on the library search path (e.g., LD_LIBRARY_PATH).",
-+        stacklevel=2,
-+    )
++    # In a subinterpreter, mkl-service fails to import regardless of the MKL runtime.
++    # NumPy doesn't support subinterpreters either, so let its own import raise the
++    # appropriate error.

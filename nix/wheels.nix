@@ -18,9 +18,9 @@
       hash = "sha256-Iwiho+dHGKnNjMzyGMNNjNgLQ9O4nfuwGzje4gXFCYA=";
     };
     mkl = {
-      version = "2026.2.0";
-      url = "https://files.pythonhosted.org/packages/dc/51/3447e212ae3b09f3da7f0ae1b834aa452b8114cfffbb7a8f702715cb3706/mkl-2026.2.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-6qsYdc6fR6s8ZtVjLO8GuvdowFeB8vKIR728Q0NQDtc=";
+      version = "2026.2.1";
+      url = "https://files.pythonhosted.org/packages/e9/31/53bb8fd1098caaf2c634cae75a1abbc1d3c67089a085afa38eeea79f7ea7/mkl-2026.2.1-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-djIqOr9RJZSre06Cy3LfkeTl0ZVJh2mqiykjc8Hd1tE=";
     };
     mkl-service = {
       version = "2.9.0";
@@ -28,9 +28,9 @@
       hash = "sha256-VdRek72Tm8d3IXORQfbNXQn6DsiKgWZXHeCiwmd5Mto=";
     };
     numpy = {
-      version = "2.5.4";
-      url = "https://github.com/urob/numpy-mkl/releases/download/0.3.17/numpy-2.5.4-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
-      hash = "sha256-zIdJ36anyoj7P/ZxGWK3T6SWBFzxwGAD/kKLJ77qGO4=";
+      version = "2.5.5";
+      url = "https://github.com/urob/numpy-mkl/releases/download/0.3.25/numpy-2.5.5-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
+      hash = "sha256-yVYQ+YdBkC14FkfDANXQWDY1coOEG9Vlk4Wj5HpdfrU=";
     };
     scipy = {
       version = "1.18.1";
@@ -65,9 +65,9 @@
       hash = "sha256-Iwiho+dHGKnNjMzyGMNNjNgLQ9O4nfuwGzje4gXFCYA=";
     };
     mkl = {
-      version = "2026.2.0";
-      url = "https://files.pythonhosted.org/packages/dc/51/3447e212ae3b09f3da7f0ae1b834aa452b8114cfffbb7a8f702715cb3706/mkl-2026.2.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-6qsYdc6fR6s8ZtVjLO8GuvdowFeB8vKIR728Q0NQDtc=";
+      version = "2026.2.1";
+      url = "https://files.pythonhosted.org/packages/e9/31/53bb8fd1098caaf2c634cae75a1abbc1d3c67089a085afa38eeea79f7ea7/mkl-2026.2.1-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-djIqOr9RJZSre06Cy3LfkeTl0ZVJh2mqiykjc8Hd1tE=";
     };
     mkl-service = {
       version = "2.9.0";
@@ -75,9 +75,9 @@
       hash = "sha256-LKOGIgtv9BTJvnddw5sK2Uhiz2MK0R9HOvhSRhb+cNk=";
     };
     numpy = {
-      version = "2.5.4";
-      url = "https://github.com/urob/numpy-mkl/releases/download/0.3.17/numpy-2.5.4-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
-      hash = "sha256-62mJB41pX2XTu7wsYnsM4NABjxkfNAX9yTCdWbHvp2A=";
+      version = "2.5.5";
+      url = "https://github.com/urob/numpy-mkl/releases/download/0.3.25/numpy-2.5.5-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl";
+      hash = "sha256-oSs50c2CXQD0S9p0LkZ2I6+olVlMTKOL+FSI+6TiX8A=";
     };
     scipy = {
       version = "1.18.1";
@@ -112,9 +112,9 @@
       hash = "sha256-Iwiho+dHGKnNjMzyGMNNjNgLQ9O4nfuwGzje4gXFCYA=";
     };
     mkl = {
-      version = "2026.2.0";
-      url = "https://files.pythonhosted.org/packages/dc/51/3447e212ae3b09f3da7f0ae1b834aa452b8114cfffbb7a8f702715cb3706/mkl-2026.2.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-6qsYdc6fR6s8ZtVjLO8GuvdowFeB8vKIR728Q0NQDtc=";
+      version = "2026.2.1";
+      url = "https://files.pythonhosted.org/packages/e9/31/53bb8fd1098caaf2c634cae75a1abbc1d3c67089a085afa38eeea79f7ea7/mkl-2026.2.1-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-djIqOr9RJZSre06Cy3LfkeTl0ZVJh2mqiykjc8Hd1tE=";
     };
     mkl-service = {
       version = "2.9.0";
@@ -159,9 +159,9 @@
       hash = "sha256-Iwiho+dHGKnNjMzyGMNNjNgLQ9O4nfuwGzje4gXFCYA=";
     };
     mkl = {
-      version = "2026.2.0";
-      url = "https://files.pythonhosted.org/packages/dc/51/3447e212ae3b09f3da7f0ae1b834aa452b8114cfffbb7a8f702715cb3706/mkl-2026.2.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-6qsYdc6fR6s8ZtVjLO8GuvdowFeB8vKIR728Q0NQDtc=";
+      version = "2026.2.1";
+      url = "https://files.pythonhosted.org/packages/e9/31/53bb8fd1098caaf2c634cae75a1abbc1d3c67089a085afa38eeea79f7ea7/mkl-2026.2.1-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-djIqOr9RJZSre06Cy3LfkeTl0ZVJh2mqiykjc8Hd1tE=";
     };
     mkl-service = {
       version = "2.9.0";
@@ -206,9 +206,9 @@
       hash = "sha256-Iwiho+dHGKnNjMzyGMNNjNgLQ9O4nfuwGzje4gXFCYA=";
     };
     mkl = {
-      version = "2026.2.0";
-      url = "https://files.pythonhosted.org/packages/dc/51/3447e212ae3b09f3da7f0ae1b834aa452b8114cfffbb7a8f702715cb3706/mkl-2026.2.0-py2.py3-none-manylinux_2_28_x86_64.whl";
-      hash = "sha256-6qsYdc6fR6s8ZtVjLO8GuvdowFeB8vKIR728Q0NQDtc=";
+      version = "2026.2.1";
+      url = "https://files.pythonhosted.org/packages/e9/31/53bb8fd1098caaf2c634cae75a1abbc1d3c67089a085afa38eeea79f7ea7/mkl-2026.2.1-py2.py3-none-manylinux_2_28_x86_64.whl";
+      hash = "sha256-djIqOr9RJZSre06Cy3LfkeTl0ZVJh2mqiykjc8Hd1tE=";
     };
     mkl-service = {
       version = "2.9.0";

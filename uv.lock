@@ -129,7 +129,7 @@ wheels = [
 
 [[package]]
 name = "numpy-mkl"
-version = "0.3.25"
+version = "0.3.26"
 source = { virtual = "." }
 dependencies = [
     { name = "packaging" },
